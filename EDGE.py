@@ -53,9 +53,9 @@ class EDGE:
         self.repr_dim = repr_dim = rot_dim #pos_dim + rot_dim + 4
 
 #        feature_dim = 35 if use_baseline_feats else 4800
-#        feature_dim = 141 #For accelerometer and gyro features
+        feature_dim = 141 #For accelerometer and gyro features
 #        feature_dim = 75 #For accelerometer features
-        feature_dim = feature_type#
+#        feature_dim = feature_type#
 
         horizon_seconds = 5
         FPS = 30
@@ -190,7 +190,8 @@ class EDGE:
 #            avg_footloss = 0
             # train
             self.train()
-            for step, (x, cond, filename, wavnames) in enumerate(
+#            for step, (x, cond, filename, wavnames) in enumerate(
+            for step, (x, cond, filename) in enumerate(
                 load_loop(train_data_loader)
             ):
                 print("HERE:")
@@ -254,7 +255,8 @@ class EDGE:
                     shape = (render_count, self.horizon, self.repr_dim)
                     print("Generating Sample")
                     # draw a music from the test dataset
-                    (x, cond, filename, wavnames) = next(iter(test_data_loader))
+#                    (x, cond, filename, wavnames) = next(iter(test_data_loader))
+                    (x, cond, filename) = next(iter(test_data_loader))
                     cond = cond.to(self.accelerator.device)
                     pathOut = "./generatedDance/"
                     self.diffusion.render_sample(
@@ -263,7 +265,7 @@ class EDGE:
                         self.normalizer,
                         epoch,
                         os.path.join(pathOut, "train_" + opt.exp_name),
-                        name=wavnames[:render_count],
+#                        name=wavnames[:render_count],
                         sound=True,
                     )
                     print(f"[MODEL SAVED at Epoch {epoch}]")
@@ -273,7 +275,7 @@ class EDGE:
     def render_sample(
         self, data_tuple, label, render_dir, render_count=-1, fk_out=None, render=True
     ):
-        _, cond, wavname = data_tuple
+        #_, cond, wavname = data_tuple
 #        assert len(cond.shape) == 3
         if render_count < 0:
             render_count = len(cond)
@@ -285,7 +287,7 @@ class EDGE:
             self.normalizer,
             label,
             render_dir,
-            name=wavname[:render_count],
+#            name=wavname[:render_count],
             sound=False,
             mode="long",
             fk_out=fk_out,

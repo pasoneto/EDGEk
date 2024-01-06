@@ -32,15 +32,16 @@ def extractPhoneFeatures(directoryIn, directoryOut):
         df = extractFeats(df, df.shape[0])
         df = np.float32(df)
         np.save(fName, df)
-        print(f"Wrote file: {k}")
+        print(f"Wrote file: {k} of shape {df.shape}")
 
 ##Getting Watch+Phone features from AIST++
-train = ["test", "test"]
+#train = ["train", "test"]
+train = ["train", "test"]
 fType = ["accel"]
 for k in train:
     for l in fType:
         directoryIn = f"../{l}/{k}/positionsWatch/"
-        directoryOut = f"../{l}/{k}/baseline_feats_watch/"
+        directoryOut = f"../{l}/{k}/baseline_feats/"
         extractPhoneFeatures(directoryIn, directoryOut)
 
 if False:
