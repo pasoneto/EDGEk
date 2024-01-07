@@ -266,6 +266,7 @@ class EDGE:
                         epoch,
                         os.path.join(pathOut, "train_" + opt.exp_name),
 #                        name=wavnames[:render_count],
+                        name=["current_pred"],
                         sound=True,
                     )
                     print(f"[MODEL SAVED at Epoch {epoch}]")
@@ -288,6 +289,7 @@ class EDGE:
             label,
             render_dir,
 #            name=wavname[:render_count],
+            name=["current_predicted"],
             sound=False,
             mode="long",
             fk_out=fk_out,
