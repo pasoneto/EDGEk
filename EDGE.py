@@ -249,7 +249,7 @@ class EDGE:
                         "normalizer": self.normalizer,
                     }
                     wdir = "./weights/" #User code. Force save weights path
-                    torch.save(ckpt, os.path.join(wdir, f"train_checkpoint_gyro_current3.pt"))
+                    torch.save(ckpt, os.path.join(wdir, f"train_checkpoint_watch_{epoch}.pt"))
                     # generate a sample
                     render_count = 1
                     shape = (render_count, self.horizon, self.repr_dim)
@@ -277,6 +277,7 @@ class EDGE:
         self, data_tuple, label, render_dir, render_count=-1, fk_out=None, render=True
     ):
         #_, cond, wavname = data_tuple
+        _, cond, fName = data_tuple
 #        assert len(cond.shape) == 3
         if render_count < 0:
             render_count = len(cond)
@@ -288,8 +289,8 @@ class EDGE:
             self.normalizer,
             label,
             render_dir,
-#            name=wavname[:render_count],
-            name=["current_predicted"],
+            name=fName[:render_count],
+#            name=["current_predicted"],
             sound=False,
             mode="long",
             fk_out=fk_out,

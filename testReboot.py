@@ -41,12 +41,16 @@ stringintkey = cmp_to_key(stringintcmp_)
 
 dataset_details = {
   "amass": {"accel": {"in": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/phoneFeatures/",
-                      "out": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predicted/",
+                      "out": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predictedAccel/",
                       "weights": "./weights/train_checkpointFirstTrain.pt",
                       "nFeatures": 75},
             "gyro": {"in": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/phoneFeaturesGyro/",
                      "out": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predictedGyro/",
                      "weights": "./weights/train_checkpoint_gyro_current5.pt",
+                     "nFeatures": 141},
+            "watch": {"in": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/watchFeatures/",
+                     "out": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predictedWatch/",
+                     "weights": "./weights/train_checkpoint_watch.pt",
                      "nFeatures": 141},
   },
   "aist": {"accel": {"in": "/Users/pdealcan/Documents/github/EDGEk/data/accel/test/baseline_feats/",
@@ -55,6 +59,10 @@ dataset_details = {
                      "nFeatures": 75},
            "gyro": {"in": "/Users/pdealcan/Documents/github/EDGEk/data/gyro/test/baseline_feats/",
                     "out": "/Users/pdealcan/Documents/github/EDGEk/data/gyro/test/predicted/",
+                    "weights": "./weights/train_checkpoint_gyro_current5.pt",
+                    "nFeatures": 141},
+           "watch": {"in": "/Users/pdealcan/Documents/github/EDGEk/data/test/baseline_feats/",
+                    "out": "/Users/pdealcan/Documents/github/EDGEk/data/test/predictedWatch/",
                     "weights": "./weights/train_checkpoint_gyro_current5.pt",
                     "nFeatures": 141},
   },
@@ -69,8 +77,8 @@ dataset_details = {
   }
 }
 
-feature = "accel"
-dataset = "amass"
+feature = "watch"
+dataset = "aist"
 
 def test(opt):
     sample_length = opt.out_length

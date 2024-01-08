@@ -9,9 +9,17 @@ load mcdemodata
 % files = dir(directoryIn);
 
 dirTruth = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/sliced/"
-files = dir("/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predicted/");
+files = dir("/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predictedAccel/");
+
+% dirTruth = "/Users/pdealcan/Documents/github/EDGEk/data/test/motions_sliced_csv/"
+% files = dir("/Users/pdealcan/Documents/github/EDGEk/data/test/predictedWatch/");
+
 randIndex = randi([3 length(files)]);
 
+% /Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/sliced/sliced_7_Nikos_Zeibekiko_C3D_poses.csv"
+% /Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/sliced/sliced_6_Vasso_Bored_01_poses.csv
+% /Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/sliced/sliced_1_Stefanos_1os_antrikos_karsilamas_C3D_poses.csv
+% "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/sliced/sliced_15_StefanosKoullapis_Reggaeton_C3D_poses.csv"
 
 true = strcat(dirTruth, files(randIndex).name);
 pred = strcat(files(randIndex).folder, "/", files(randIndex).name);
@@ -50,7 +58,7 @@ par.msize = 8
 par.output = "mp4";
 par.videoformat = 'mp4'
 par.conn = [1 2; 1 3; 1 4; 3 6; 2 5; 3 6; 4 7; 5 8; 6 9; 9 12; 8 11; 7 10; 10 13; 13 16; 10 14; 10 15; 14 17; 15 18; 18 20; 17 19; 20 22; 19 21; 21 23]
-par.markercolors='bbbbbbbbbbbbbbbbbbbbrbbb'
+par.markercolors='bbrbbrbbbbbbbbbbbbbbrbbb'
 
 
 par2 = mcinitanimpar
@@ -58,7 +66,7 @@ par2.msize = 8
 par2.output = "mp4";
 par2.videoformat = 'mp4'
 par2.conn = [1 2; 1 3; 1 4; 3 6; 2 5; 3 6; 4 7; 5 8; 6 9; 9 12; 8 11; 7 10; 10 13; 13 16; 10 14; 10 15; 14 17; 15 18; 18 20; 17 19; 20 22; 19 21; 21 23]
-par2.markercolors='rrrrrrrrrrrrrrrrrrrrbrrr'
+par2.markercolors='rrbrrbrrrrrrrrrrrrrrbrrr'
 
 
 trueD = mccenter(trueD);

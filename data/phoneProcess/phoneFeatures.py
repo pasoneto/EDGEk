@@ -27,15 +27,15 @@ def extractPhoneFeatures(directoryIn, directoryOut):
         fName = f"{directoryOut}{k}"
         fName = fName.replace("csv", "npy")
         df = df.to_numpy()
-        df = df[:: 2, :]
-        df = get_second_derivative(df)
+#       Downsample and derivative are performed in MATLAB
+#        df = df[:: 2, :]
+#        df = get_second_derivative(df)
         df = extractFeats(df, df.shape[0])
         df = np.float32(df)
         np.save(fName, df)
         print(f"Wrote file: {k} of shape {df.shape}")
 
 ##Getting Watch+Phone features from AIST++
-#train = ["train", "test"]
 train = ["train", "test"]
 fType = ["accel"]
 for k in train:
@@ -45,6 +45,11 @@ for k in train:
         extractPhoneFeatures(directoryIn, directoryOut)
 
 if False:
+    ##Getting features from AMASS (Accel only)
+    dirIn = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/watchPositions/"
+    dirOut = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/watchFeatures/"
+    extractPhoneFeatures(dirIn, dirOut)
+
     ##Getting features from AMASS (Accel only)
     dirIn = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/accelPositions/"
     dirOut = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/phoneFeatures/"

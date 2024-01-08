@@ -14,12 +14,15 @@ for l=1:length(fType)
       directoryIn = strcat("/Users/pdealcan/Documents/github/EDGEk/data/", fType(l), "/", traintest(j), "/motions_sliced_csv/");
       directoryOut = strcat("/Users/pdealcan/Documents/github/EDGEk/data/", fType(l), "/", traintest(j), "/positionsWatch/");
 
+      directoryIn = strcat("/Users/pdealcan/Documents/github/EDGEk/data/", traintest(j), "/motions_sliced_csv/");
+      directoryOut = strcat("/Users/pdealcan/Documents/github/EDGEk/data/", traintest(j), "/positionsWatch/");
+      
       files = dir(directoryIn);
       for k=3:length(files)
           fName = strcat(directoryIn, files(k).name);
           true = readtable(fName);
           true = table2array(true);
-
+k
           df = dance1;
           df.nFrames = height(true);
           df.nMarkers = width(true)/3;
@@ -30,11 +33,11 @@ for l=1:length(fType)
           phone = (mcgetmarker(df, 3).data + mcgetmarker(df, 6).data)/2;
           watch = mcgetmarker(df, 21).data;
 
-          df.data = [phone, watch];
+          df.data = [df.data, phone, watch];
 
           df.nMarkers = width(df.data)/3;
-   
-          df = mcresample(df, 15);
+            
+          mcanimate(df)
           df = mctimeder(df, 2);
           
           phoneIMU = df.data;
