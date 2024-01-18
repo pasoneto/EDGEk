@@ -1,0 +1,2 @@
+version,device name,recording epoch time,recording time,recording timezone,platform,appVersion,device id,sensors,sampleRateMs
+3,iPhone SE (3rd generation),1704913142151,2024-01-10_18-59-02,Europe/Helsinki,ios,1.27.1,495d3891-21f5-4be7-b91d-6adc45a156a3,Accelerometer|Wrist Motion|Annotation|AccelerometerUncalibrated,10|10||10

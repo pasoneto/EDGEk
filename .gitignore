@@ -1,6 +1,7 @@
 train/
 test/
 edge_aistpp/
+IMUPoser/
 dataset_backups/
 runs/
 wandb/

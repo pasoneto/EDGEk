@@ -98,13 +98,19 @@ local_q = torch.Tensor(np.array([df[name2]]))
 bs, sq, c = local_q.shape
 local_q = local_q.reshape((bs, sq, -1, 3))
 
-positions = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
-positions = positions.reshape(bs, sq, 72)
-positions = positions[0]
+positions, quaternions = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
+positions = positions[0].reshape(bs, sq, 72)
+positions = positions[0].detach().numpy()
+positions = pd.DataFrame(positions)
 
-df = pd.DataFrame(positions)
-df.to_csv("/Users/pdealcan/Documents/github/EDGEk/test.csv", index = False, header = False)
+quaternions = torch.stack(quaternions).permute(1, 2, 0, 3)
+quaternions = quaternions[0]
+quaternions = quaternions.detach().numpy()
+quaternions = quaternions.reshape(-1, 24*4)
+quaternions = pd.DataFrame(quaternions)
 
+positions.to_csv("/Users/pdealcan/Documents/github/EDGEk/testAMASSposition.csv", index = False, header = False)
+quaternions.to_csv("/Users/pdealcan/Documents/github/EDGEk/testAMASSquaternion.csv", index = False, header = False)
 
 
 
@@ -130,9 +136,6 @@ df = pd.DataFrame(df)
 df.to_csv("/Users/pdealcan/Documents/github/EDGEk/test.csv", index = False, header = False)
 
 
-
-
-
 #Converting AIST++ to positions
 #train = "test"
 directoryIn = f"/Users/pdealcan/Documents/github/motions_sliced_original_test/"
@@ -141,7 +144,7 @@ df = pd.read_pickle(f"{directoryIn}{files[50]}")
 df['pos'].shape
 df['q'].shape
 
-df = smplToPosition(df)
+df = smplToPosition(df, 'pos', 'q')
 df = pd.DataFrame(df)
 
 df.to_csv("/Users/pdealcan/Documents/github/EDGEk/test.csv", index = False, header = False)

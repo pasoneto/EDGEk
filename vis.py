@@ -17,8 +17,6 @@ from tqdm import tqdm
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
 
-
-
 smpl_joints = [
     "root",  # 0
     "lhip",  # 1
@@ -44,7 +42,6 @@ smpl_joints = [
     "rwrist", # 21
     "lhand", # 22
     "rhand", # 23
-#    "phone", # 24
 ]
 
 smpl_parents = [
@@ -72,7 +69,6 @@ smpl_parents = [
     19,
     20,
     21,
-#    3,
 ]
 
 smpl_offsets = [
@@ -100,7 +96,6 @@ smpl_offsets = [
     [-0.26910836, 0.00679372, -0.00602676],
     [0.08669055, -0.01063603, -0.01559429],
     [-0.0887537, -0.00865157, -0.01010708],
-#    [-0.0887537, -0.00865157, -0.01010708], #phone offset
 ]
 
 def set_line_data_3d(line, x):
@@ -317,9 +312,10 @@ class SMPLSkeleton:
 
         # Parallelize along the batch and time dimensions
         for i in range(self._offsets.shape[0]):
+            print(i)
             if self._parents[i] == -1:
                 positions_world.append(root_positions)
-                rotations_world.append(rotations[:, :, 0])
+                rotations_world.append(rotations[:, :, 0]) #Root is its own local and global rotation
             else:
                 positions_world.append(
                     quaternion_apply(
@@ -328,13 +324,17 @@ class SMPLSkeleton:
                     + positions_world[self._parents[i]]
                 )
                 if self._has_children[i]:
-                    rotations_world.append(
-                        quaternion_multiply(
-                            rotations_world[self._parents[i]], rotations[:, :, i]
-                        )
-                    )
+                    #User code: convert quaternion to axis_angles
+                    global_rot = quaternion_multiply(rotations_world[self._parents[i]], rotations[:, :, i]) #Find child's rotation
+#                    global_rot = quaternion_to_axis_angle(global_rot)
+                    rotations_world.append(global_rot)
                 else:
                     # This joint is a terminal node -> it would be useless to compute the transformation
-                    rotations_world.append(None)
+                    # Yes, it's useless for position calculation, but I still wanna know its global orientation
+#                    print("Final")
+#                    rotations_world.append(None)
+                    global_rot = quaternion_multiply(rotations_world[self._parents[i]], rotations[:, :, i]) #Find child's rotation
+#                    global_rot = quaternion_to_axis_angle(global_rot)
+                    rotations_world.append(global_rot)
 
-        return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2)
+        return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2), rotations_world

@@ -50,7 +50,7 @@ dataset_details = {
                      "nFeatures": 141},
             "watch": {"in": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/watchFeatures/",
                      "out": "/Users/pdealcan/Documents/github/data/CoE/accel/amass/DanceDBPoses/predictedWatch/",
-                     "weights": "./weights/train_checkpoint_watch.pt",
+                     "weights": "./weights/train_checkpoint_watch_1620.pt",
                      "nFeatures": 141},
   },
   "aist": {"accel": {"in": "/Users/pdealcan/Documents/github/EDGEk/data/accel/test/baseline_feats/",
@@ -78,7 +78,7 @@ dataset_details = {
 }
 
 feature = "watch"
-dataset = "aist"
+dataset = "amass"
 
 def test(opt):
     sample_length = opt.out_length
