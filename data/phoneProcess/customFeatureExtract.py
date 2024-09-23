@@ -7,16 +7,15 @@ from scipy.fftpack import fft
 from scipy.signal import find_peaks
 import pywt  # PyWavelets library for wavelet transform
 
-sr = 30
-
 def getPCAproj(x):
     pca = PCA(n_components=3)
     pca.fit(x)
     proj = pca.transform(x)
     return proj
 
-def get_second_derivative(position):
-    dt = 1/30 #1 divided by frames per second
+def get_second_derivative(position, sr):
+    "Gets acceleration from position"
+    dt = 1/sr #1 divided by frames per second
     velocity = np.gradient(position, dt, axis = 0)
     acceleration = np.gradient(velocity, dt, axis = 0)
     return acceleration
@@ -25,6 +24,11 @@ def get_second_derivative(position):
 def fP(x):
     x, _ = find_peaks(x)
     return x
+
+#Generate phone
+def createPhone(df):
+    phone = (df[:,6:9] + df[:,15:18])/2 #Phone root calculated between right hip and knee markers
+    return phone
 
 def extractFeats(acceleration_data, windowLength):
     #Descriptives accross euclidien dimensions (x, y, z)

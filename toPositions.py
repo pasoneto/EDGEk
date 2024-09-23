@@ -1,71 +1,78 @@
-import pandas as pd
+import sys
+sys.path.insert(1, '/Users/pdealcan/Documents/github/EDGEk/')
+
 import numpy as np
 import torch
-import sys
 import os
-
+import pandas as pd
+from pytorch3d.transforms import (axis_angle_to_matrix)
+import json
 import pickle as pkl
-
 from dataset.dance_dataset import *
-
-from vis import SMPLSkeleton
-
+from vis import SMPLSkeleton, smplToPosition, create_middle_marker, differentiate_fast
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
-                                  quaternion_multiply)
+                                  quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
+from dataset.quaternion import ax_from_6v, quat_slerp
 
-# CONVERTS SMPL REPRESENTATIONS TO POSITIONS, AND CREATES A ROOT FOR THE CENTER OF
-# A PHONE AS THE AVERAGE OF HIP AND KNEE MARKERS
+from scipy.interpolate import interp1d
 
-#markers = ["root", "lhip", "rhip", "belly", "lknee", "rknee", "spine", "lankle", "rankle", "chest", "ltoes", "rtoes", "neck", "linshoulder", "rinshoulder", "head",  "lshoulder", "rshoulder", "lelbow", "relbow", "lwrist", "rwrist", "lhand", "rhand"]
-def smplToPosition(df):
-    smpl = SMPLSkeleton()
-    # to Tensor
-    root_pos = torch.Tensor(np.array([df['pos']]))
-    local_q = torch.Tensor(np.array([df['q']]))
-    # to ax
-    bs, sq, c = local_q.shape
-    local_q = local_q.reshape((bs, sq, -1, 3))
-    # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
-    root_q = local_q[:, :, :1, :]  # sequence x 1 x 3
-    root_q_quat = axis_angle_to_quaternion(root_q)
-    rotation = torch.Tensor(
-        [0.7071068, 0.7071068, 0, 0]
-    )  # 90 degrees about the x axis
-    root_q_quat = quaternion_multiply(rotation, root_q_quat)
-    root_q = quaternion_to_axis_angle(root_q_quat)
-    local_q[:, :, :1, :] = root_q
-    # don't forget to rotate the root position too 😩
-    pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
-    root_pos = pos_rotation.transform_points(
-        root_pos
-    )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
-    # do FK
-    positions = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
-    #positions = positions.reshape(17733, 150, -1)
-    #positions = positions.reshape(186, 150, -1)
-    positions = positions[0]
-    positions = positions.numpy()
-    positions = positions.reshape(300, 72)
-#    positions = positions.reshape(-1, 150, 72)
-    #Tenho que transformar de volta em numpy, não Torch tensor
-    return positions
+def interp(df, sr, newfreq):
+    t1 = np.arange(0, df.shape[0]) / sr
+    t2 = np.arange(0, t1[-1], 1/newfreq)
+    interpolator = interp1d(t1, df, axis=0, kind='linear', fill_value="extrapolate")
+    interpolated_data = interpolator(t2)
+    return interpolated_data
 
+def slicer(df, rows, i):
+    df_slice = {}
+    df_slice['trans'] = df['trans'][i * rows : (i + 1) * rows, :]
+    df_slice['poses'] = df['poses'][i * rows : (i + 1) * rows, :]
+    df_slice['scaling'] = 1
+    return df_slice
 
-def wrapMotionConverter(train):
-    directoryIn = f"./data/{train}/motions_sliced_original/"
-    directoryOut = f"./data/{train}/motions_sliced/"
-    os.makedirs(directoryOut, exist_ok=True)
-    files = os.listdir(directoryIn) #SMPL files
-    for k in range(len(files)):
-        df = pd.read_pickle(f"{directoryIn}{files[k]}")
-        df = smplToPosition(df)
-    #        df = df.numpy()
-        fName = f"{directoryOut}{files[k]}"
-        fileObject = open(fName, 'wb')
-        pkl.dump(df, fileObject)
-        print(f"Wrote file: {k}")
+path = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/amass_full/DanceDB/"
+dirOut2 = "./eval/eval_data/positions_amass/"
+datasets = os.listdir(path)
 
-train = "test"
-wrapMotionConverter(train)
-train = "train"
-wrapMotionConverter(train)
+seconds = 10
+newFreq = 15
+folders = os.listdir(f"{path}")
+for k in folders:
+    if k != ".DS_Store":
+        files = os.listdir(f"{path}/{k}")
+        for j in files:
+            if j != "shape.npz":
+                try:
+                    cFile = f"{path}/{k}/{j}"
+
+                    df = dict(np.load(cFile))
+                    sr = df['mocap_framerate'] 
+
+                    df['scaling'] = 1
+
+                    #Resample
+                    df['trans'] = interp(df['trans'], sr, newFreq)
+                    df['poses'] = interp(df['poses'], sr, newFreq)
+                    sr = newFreq 
+
+                    #Slicing
+                    n_frames = len(df['trans'])
+                    rows = int(sr*seconds)
+                    num_chunks = int(n_frames / rows) #int() always rounds down, therefore we never get an unequal sample size
+                    for i in range(num_chunks):
+                        df_sliced = slicer(df, rows, i)
+                        positions, rotations = smplToPosition(df_sliced['trans'], df_sliced['poses'], df_sliced['scaling'], aist = False)
+
+                        positions = positions[0]
+                        angles = quaternion_to_axis_angle(rotations)
+                        angles = angles[0]
+
+                        #Save position raw
+                        outName2 = f"{dirOut2}/sliced_{i}_{j.replace('.npz', '')}"
+                        print(outName2)
+                        pd.DataFrame(positions.reshape(-1, positions.shape[1]*positions.shape[2])).to_csv(f"{outName2}.csv", index = False, header = False)
+
+                except Exception as error:
+                        print(f"Error: {error}")
+
+        print(f"Finished folder {k}")

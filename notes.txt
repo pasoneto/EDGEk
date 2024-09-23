@@ -1,3 +1,1 @@
-0.0014
-0.0003
-0.0014
+#toPositions_redo.py => converts aist AND amass to training and testing sets

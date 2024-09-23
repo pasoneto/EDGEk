@@ -16,12 +16,12 @@ from EDGE import EDGE
 from data.audio_extraction.baseline_features import extract as baseline_extract
 from data.audio_extraction.jukebox_features import extract as juke_extract
 
+from data.phoneProcess.customFeatureExtract import *
 import pandas as pd
 import numpy as np
 
 # sort filenames that look like songname_slice{number}.ext
 key_func = lambda x: int(os.path.splitext(x)[0].split("_")[-1].split("slice")[-1])
-
 
 def stringintcmp_(a, b):
     aa, bb = "".join(a.split("_")[:-1]), "".join(b.split("_")[:-1])
@@ -39,57 +39,65 @@ def stringintcmp_(a, b):
 
 stringintkey = cmp_to_key(stringintcmp_)
 
+dataset_details = {
+  "amass": {"watch": {"in": "/Users/pdealcan/Documents/github/EDGEk/features_amass",
+                     "out": "/Users/pdealcan/Documents/github/EDGEk/predicted_amass",
+                     "weights": "./weights/train_checkpoint_watch.pt",
+                     "nFeatures": 141},
+  },
+  "aist": {"watch": {"in": "/Users/pdealcan/Documents/github/EDGEk/data/test/baseline_feats/",
+                    "out": "/Users/pdealcan/Documents/github/EDGEk/data/test/predictedWatch/",
+                    "weights": "./weights/train_checkpoint_gyro_current5.pt",
+                    "nFeatures": 141},
+  }
+}
+
+dataset = "amass"
+feature = "watch"
 
 def test(opt):
-#    feature_func = juke_extract if opt.feature_type == "jukebox" else baseline_extract
-#    sample_length = opt.out_length
-#    sample_size = int(sample_length / 2.5) - 1
+    sample_length = opt.out_length
+    sample_size = int(sample_length / 2.5) - 1
+    
+    sample_size = 1
+    print(f"Sample size {sample_size}")
 
-    temp_dir_list = []
-    all_cond = []
-    all_filenames = []
-    print("Using precomputed features")
-    # all subdirectories
-#    dir_list = glob.glob(os.path.join(opt.feature_cache_dir, "*/"))
-    inputsPath = "./data/test/baseline_feats/"
-    fNames = os.listdir(inputsPath)
-    index = np.random.randint(len(fNames))
+    inputsPath = dataset_details[dataset][feature]["in"]
+    render_dir = dataset_details[dataset][feature]["out"]
+    nFeatures = dataset_details[dataset][feature]["nFeatures"]
 
-    file = [np.load(f"{inputsPath}{fNames[index]}")]
-    file = torch.from_numpy(np.array(file))
+    fNames = os.listdir(inputsPath) #Name of input file
+    fileNames = [f"{render_dir}{x}".replace("npy", "csv") for x in fNames] #Name of output file
 
-    file.shape
+    model_weights = dataset_details[dataset][feature]["weights"]
 
-    model = EDGE(opt.feature_type, "./weights/train_checkpoint_gyro.pt")
+    all_cond = [] 
+    for j in fNames:
+        df = np.load(f"{inputsPath}{j}")
+
+        filE = np.float32(df)
+        filE = torch.from_numpy(filE)
+            
+        fileE = filE.reshape(1, 150, -1)
+
+        all_cond.append(fileE)
+    
+    model = EDGE(nFeatures, model_weights)
     model.eval()
 
-    # directory for optionally saving the dances for eval
+    # directory for saving the dances
     fk_out = None
-    if opt.save_motions:
-        fk_out = opt.motion_save_dir
-
-    fileName = [fNames[index].replace(".npy", "")]
-    render_dir = "./generatedDance/pairGenerated/"
-
-    os.makedirs(render_dir, exist_ok=True)
-
+        
     print("Generating dances")
-    data_tuple = None, file, fileName
-    model.render_sample(
-        data_tuple, fileName, render_dir, render_count=-1, fk_out=fk_out, render=True
-    )
-
-    f = f"{fNames[index]}".replace("npy", "pkl")
-    d = pd.read_pickle(f"./data/test/motions_sliced/{f}")
-    d = d[:: 2, :]
-    d = pd.DataFrame(d)
-    f2 = f.replace("pkl", "csv")
-    d.to_csv(f"{render_dir}true_{f2}", index = False, header = False)
-
+    for i in range(len(all_cond)):
+        data_tuple = None, all_cond[i], [fileNames[i]]
+        print(f"Inputing file: {fNames[i]}")
+        model.render_sample(
+#            data_tuple, "test", opt.render_dir, render_count=-1, fk_out=fk_out, render=not opt.no_render
+            data_tuple, i, render_dir, render_count=-1, fk_out=fk_out, render=True
+        )
     print("Done")
     torch.cuda.empty_cache()
-    for temp_dir in temp_dir_list:
-        temp_dir.cleanup()
 
 
 if __name__ == "__main__":

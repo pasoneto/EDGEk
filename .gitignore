@@ -14,6 +14,8 @@ __pycache__/
 *.pkl
 *.pt
 *.npy
+*.npz
+*.csv
 *.zip
 cached_features/
 custom_music/

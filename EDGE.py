@@ -43,17 +43,17 @@ class EDGE:
         self.accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
         state = AcceleratorState()
         num_processes = state.num_processes
-#        use_baseline_feats = feature_type == "baseline"
         use_baseline_feats = True
 
         pos_dim = 3
-#        rot_dim = 24 * 6  # 24 joints, 6dof
-        rot_dim = 24 * 3  # 24 joints, 6dof
+        rot_dim = 24 * 3  # 24 joints, 3dof
 #        self.repr_dim = repr_dim = pos_dim + rot_dim + 4
         self.repr_dim = repr_dim = rot_dim #pos_dim + rot_dim + 4
 
 #        feature_dim = 35 if use_baseline_feats else 4800
         feature_dim = 141 #For accelerometer features
+#        feature_dim = 75 #For accelerometer features
+#        feature_dim = feature_type#
 
         horizon_seconds = 5
         FPS = 30
@@ -188,10 +188,11 @@ class EDGE:
 #            avg_footloss = 0
             # train
             self.train()
-            for step, (x, cond, filename, wavnames) in enumerate(
+#            for step, (x, cond, filename, wavnames) in enumerate(
+            for step, (x, cond, filename) in enumerate(
                 load_loop(train_data_loader)
             ):
-                print("HERE:")
+                print("HEREEEEE:")
                 print(x.shape)
                 print(cond.shape)
 #                total_loss, (loss, v_loss, fk_loss, foot_loss) = self.diffusion(
@@ -246,13 +247,14 @@ class EDGE:
                         "normalizer": self.normalizer,
                     }
                     wdir = "./weights/" #User code. Force save weights path
-                    torch.save(ckpt, os.path.join(wdir, f"train_checkpoint_gyro.pt"))
+                    torch.save(ckpt, os.path.join(wdir, f"train_checkpoint_watch_{epoch}.pt"))
                     # generate a sample
                     render_count = 1
                     shape = (render_count, self.horizon, self.repr_dim)
                     print("Generating Sample")
                     # draw a music from the test dataset
-                    (x, cond, filename, wavnames) = next(iter(test_data_loader))
+#                    (x, cond, filename, wavnames) = next(iter(test_data_loader))
+                    (x, cond, filename) = next(iter(test_data_loader))
                     cond = cond.to(self.accelerator.device)
                     pathOut = "./generatedDance/"
                     self.diffusion.render_sample(
@@ -261,7 +263,8 @@ class EDGE:
                         self.normalizer,
                         epoch,
                         os.path.join(pathOut, "train_" + opt.exp_name),
-                        name=wavnames[:render_count],
+#                        name=wavnames[:render_count],
+                        name=["current_pred"],
                         sound=True,
                     )
                     print(f"[MODEL SAVED at Epoch {epoch}]")
@@ -271,7 +274,8 @@ class EDGE:
     def render_sample(
         self, data_tuple, label, render_dir, render_count=-1, fk_out=None, render=True
     ):
-        _, cond, wavname = data_tuple
+        #_, cond, wavname = data_tuple
+        _, cond, fName = data_tuple
 #        assert len(cond.shape) == 3
         if render_count < 0:
             render_count = len(cond)
@@ -283,9 +287,10 @@ class EDGE:
             self.normalizer,
             label,
             render_dir,
-            name=wavname[:render_count],
+            name=fName[:render_count],
+#            name=["current_predicted"],
             sound=False,
-            mode="long",
+            mode="normal",
             fk_out=fk_out,
             render=render
         )

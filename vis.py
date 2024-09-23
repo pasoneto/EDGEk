@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 
 import librosa as lr
 import matplotlib.animation as animation
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as plt 
 import numpy as np
 import soundfile as sf
 import torch
@@ -14,6 +14,10 @@ from matplotlib.colors import ListedColormap
 #                                  quaternion_multiply)
 from tqdm import tqdm
 
+from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
+                                  quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
+
+from scipy.signal import butter, filtfilt
 smpl_joints = [
     "root",  # 0
     "lhip",  # 1
@@ -35,11 +39,10 @@ smpl_joints = [
     "rshoulder",  # 17
     "lelbow", # 18
     "relbow",  # 19
-    "lwrist", # 20
-    "rwrist", # 21
+    "lwrist", # 20 (60, 61, 62)
+    "rwrist", # 21 (63, 64, 65)
     "lhand", # 22
     "rhand", # 23
-#    "phone", # 24
 ]
 
 smpl_parents = [
@@ -67,7 +70,6 @@ smpl_parents = [
     19,
     20,
     21,
-#    3,
 ]
 
 smpl_offsets = [
@@ -95,7 +97,6 @@ smpl_offsets = [
     [-0.26910836, 0.00679372, -0.00602676],
     [0.08669055, -0.01063603, -0.01559429],
     [-0.0887537, -0.00865157, -0.01010708],
-#    [-0.0887537, -0.00865157, -0.01010708], #phone offset
 ]
 
 def set_line_data_3d(line, x):
@@ -130,12 +131,13 @@ def get_axrange(poses):
 
 def plot_single_pose(num, poses, lines, ax, axrange, scat, contact):
     pose = poses[num]
-    static = contact[num]
+#    static = contact[num]
     indices = [7, 8, 10, 11]
 
     for i, (point, idx) in enumerate(zip(scat, indices)):
         position = pose[idx : idx + 1]
-        color = "r" if static[i] else "g"
+#        color = "r" if static[i] else "g"
+        color = "r"
         set_scatter_data_3d(point, position, color)
 
     for i, (p, line) in enumerate(zip(smpl_parents, lines)):
@@ -199,13 +201,13 @@ def skeleton_render(
         axrange = 3
 
         # create contact labels
-        feet = poses[:, (7, 8, 10, 11)]
-        feetv = np.zeros(feet.shape[:2])
-        feetv[:-1] = np.linalg.norm(feet[1:] - feet[:-1], axis=-1)
-        if contact is None:
-            contact = feetv < 0.01
-        else:
-            contact = contact > 0.95
+#        feet = poses[:, (7, 8, 10, 11)]
+#        feetv = np.zeros(feet.shape[:2])
+#        feetv[:-1] = np.linalg.norm(feet[1:] - feet[:-1], axis=-1)
+#        if contact is None:
+#            contact = feetv < 0.01
+#        else:
+#            contact = contact > 0.95
 
         # Creating the Animation object
         anim = animation.FuncAnimation(
@@ -314,7 +316,7 @@ class SMPLSkeleton:
         for i in range(self._offsets.shape[0]):
             if self._parents[i] == -1:
                 positions_world.append(root_positions)
-                rotations_world.append(rotations[:, :, 0])
+                rotations_world.append(rotations[:, :, 0]) #Root is its own local and global rotation
             else:
                 positions_world.append(
                     quaternion_apply(
@@ -323,13 +325,160 @@ class SMPLSkeleton:
                     + positions_world[self._parents[i]]
                 )
                 if self._has_children[i]:
-                    rotations_world.append(
-                        quaternion_multiply(
-                            rotations_world[self._parents[i]], rotations[:, :, i]
-                        )
-                    )
+                    #User code: convert quaternion to axis_angles
+                    global_rot = quaternion_multiply(rotations_world[self._parents[i]], rotations[:, :, i]) #Find child's rotation
+                    rotations_world.append(global_rot)
                 else:
                     # This joint is a terminal node -> it would be useless to compute the transformation
-                    rotations_world.append(None)
+                    # Yes, it's useless for position calculation, but I still wanna know its global orientation
+#                    print("Final")
+#                    rotations_world.append(None)
+                    global_rot = quaternion_multiply(rotations_world[self._parents[i]], rotations[:, :, i]) #Find child's rotation
+#                    global_rot = quaternion_to_axis_angle(global_rot)
+                    rotations_world.append(global_rot)
 
-        return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2)
+        return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2), rotations_world
+
+def smplToPosition(pos, q, scale, aist = True):
+    smpl = SMPLSkeleton()
+    # to Tensor
+    pos /= scale #Normalize by scale
+    root_pos = torch.Tensor(np.array([pos]))
+    local_q = torch.Tensor(np.array([q]))
+    # to ax
+    bs, sq, c = local_q.shape
+    local_q = local_q.reshape((bs, sq, -1, 3))
+    if aist:
+        # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
+        root_q = local_q[:, :, :1, :]  # sequence x 1 x 3 #Extracting the root axis angles
+        root_q_quat = axis_angle_to_quaternion(root_q) #Converting to quaternions
+        rotation = torch.Tensor(
+            [0.7071068, 0.7071068, 0, 0]
+        )  # 90 degrees about the x axis
+        root_q_quat = quaternion_multiply(rotation, root_q_quat)
+        root_q = quaternion_to_axis_angle(root_q_quat) #Back to quaternions
+        local_q[:, :, :1, :] = root_q #Assign new rotated root
+       # don't forget to rotate the root position too 😩
+        pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
+        root_pos = pos_rotation.transform_points(
+            root_pos
+        )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
+    # do FK
+    # local_q: axis angle rotations for local rotation of each joint 
+    # root_pos: root-joint positions
+    positions, rotations = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
+    rotations = torch.stack(rotations).permute(1, 2, 0, 3) #Reorder global joint rotations
+
+    return positions, rotations
+
+
+def create_middle_marker(positions, indices):
+    r"""
+    Create a virtual marker between two other markers. 
+        - positions: object holding marker positions (N_samples, n_markers, 3)
+        - indices: an array of integers indicating two markers
+    """
+    markers = positions[:,indices,:]
+    mid_point = np.mean([markers[:, 0, :], markers[:, 1, :]], axis=0)
+    mid_point = torch.tensor(mid_point)
+    return mid_point
+
+def differentiate_fast(d, order, sr):
+    cutoff = .2;
+    b, a = butter(2, cutoff, btype='lowpass', analog=False, output='ba')  # Butterworth filter coefficients
+    for _ in range(order):
+        d = np.diff(d, axis=0) #Difference between consecutive frames
+        d = np.concatenate((np.tile(np.array([d[0]]), (1, 1)), d), axis=0) #Repeat first frame
+        d = filtfilt(b, a, d, axis=0, padtype=None, padlen=0) #Butterworth filter
+    d = d * (sr ** order)
+    return d
+
+def translate(df, offsets):
+    df[:,0:df.shape[1]:3] = df[:,0:df.shape[1]:3] + offsets[0];
+    df[:,1:df.shape[1]:3] = df[:,1:df.shape[1]:3] + offsets[1];
+    df[:,2:df.shape[1]:3] = df[:,2:df.shape[1]:3] + offsets[2];
+    return(df)
+
+def center_mean(df):
+    x = torch.mean(torch.mean(df[:,0:df.shape[1]:3], dim = 0))
+    y = torch.mean(torch.mean(df[:,1:df.shape[1]:3], dim = 0))
+    z = torch.mean(torch.mean(df[:,2:df.shape[1]:3], dim = 0))
+    df = translate(df, [-x, -y, -z]);
+    return(df)
+
+def visu(file, sr):
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.animation import FuncAnimation
+    import pandas as pd
+    import numpy as np
+    
+    try:
+        positions = pd.read_pickle(file)
+        positions = positions.to_numpy()
+    except:
+        positions = np.load(file)
+    
+    N = positions.shape[0]  # number of timesteps
+    M = int(positions.shape[1] / 3)  # number of markers
+
+    # Reshape positions to have dimensions (N, M, 3)
+    positions = positions.reshape(N, M, 3)
+
+    # Create a figure and axis
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Initialize empty lines and markers for each marker
+    lines = [ax.plot([], [], [])[0] for _ in range(M)]
+    markers = [ax.plot([], [], [], marker='o', color='blue')[0] for _ in range(M)]
+    
+    # Highlight the last two markers in red
+    markers[-1].set_markerfacecolor('red')
+    markers[-2].set_markerfacecolor('red')
+
+    # Initialize empty lines for the bones (connections between parent-child joints)
+    bones = [ax.plot([], [], [], color='blue')[0] for _ in range(M) if smpl_parents[_] != -1]
+
+    # Set axis limits
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.set_zlim(-1, 1)
+
+    # Animation function to update the plot
+    def update(frame):
+        for i in range(M):
+            # Update marker positions
+            x = positions[frame, i, 0]
+            y = positions[frame, i, 1]
+            z = positions[frame, i, 2]
+            lines[i].set_data([x], [y])
+            lines[i].set_3d_properties([z])
+            markers[i].set_data([x], [y])
+            markers[i].set_3d_properties([z])
+            
+            # Draw lines between each marker and its parent
+            if smpl_parents[i] != -1:
+                parent_idx = smpl_parents[i]
+                parent_x = positions[frame, parent_idx, 0]
+                parent_y = positions[frame, parent_idx, 1]
+                parent_z = positions[frame, parent_idx, 2]
+                bones[i-1].set_data([x, parent_x], [y, parent_y])
+                bones[i-1].set_3d_properties([z, parent_z])
+        
+        return lines + markers + bones
+
+    # Create animation
+    fr = sr
+    interval = 1000 / fr
+    ani = FuncAnimation(fig, update, frames=N, blit=True, interval=interval)
+
+    plt.show()
+
+#all_vids = os.listdir("/Users/pdealcan/Documents/github/EDGEk/data/processed/train/output/")
+#index = np.random.randint(0, 100)
+#print(all_vids[index])
+#visu(f"/Users/pdealcan/Documents/github/EDGEk/data/processed/train/output/{all_vids[index]}", 30)
+
+
+

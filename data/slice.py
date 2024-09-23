@@ -7,7 +7,6 @@ import numpy as np
 import soundfile as sf
 from tqdm import tqdm
 
-
 def slice_audio(audio_file, stride, length, out_dir):
     # stride, length in seconds
     audio, sr = lr.load(audio_file, sr=None)

@@ -1,3 +1,4 @@
+files_ignore
 gBR_sFM_cAll_d05_mBR5_ch14
 gBR_sFM_cAll_d06_mBR5_ch19
 gBR_sFM_cAll_d04_mBR4_ch07

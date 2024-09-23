@@ -586,10 +586,11 @@ class GaussianDiffusion(nn.Module):
         pos = samples
         
         pos = pos.reshape(-1, 72)
-        pd.DataFrame(pos).to_csv(name[0], index = False, header = False)
 
         print(f"Predicted output of shape: {pos.shape}")
         print(f"Name here: {name}")
+
+        pd.DataFrame(pos).to_csv(name[0], index = False, header = False)
           
         def inner(xx):
             num, pose = xx
