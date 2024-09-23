@@ -1,7 +1,8 @@
 import sys
 
 from data.phoneProcess.customFeatureExtract import get_second_derivative, extractFeats
-sys.path.insert(1, '/Users/pdealcan/Documents/github/EDGEk/')
+#sys.path.insert(1, '/Users/pdealcan/Documents/github/EDGEk/')
+sys.path.insert(1, './')
 
 import numpy as np
 import torch
@@ -36,7 +37,8 @@ def slicer2(df, rows, i):
     df_slice = df[i * rows : (i + 1) * rows, :]
     return df_slice
 
-path = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/amass_full/DanceDB/"
+#path = "/Users/pdealcan/Documents/github/data/CoE/accel/amass/amass_full/DanceDB/"
+path = "./data/raw/amass/DanceDB/"
 dirOutGround = "./data/test/motions_sliced/"
 dirOutFeats = "./data/test/baseline_feats/"
 datasets = os.listdir(path)
@@ -121,7 +123,7 @@ for k in folders:
 
 ## Process AIST++
 #path = "/Users/pdealcan/Documents/github/data/CoE/accel/aistpp/motions/"
-path = "/Users/pdealcan/Documents/github/data/CoE/accel/aistpp/edge_aistpp/motions/"
+path = "./data/raw/edge_aistpp/motions/"
 dirOutGround = "./data/train/motions_sliced/"
 dirOutFeats = "./data/train/baseline_feats/"
 filter_files = "./data/splits/ignore_list.txt"
