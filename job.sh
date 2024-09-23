@@ -10,4 +10,6 @@
 
 module load pytorch
 
-python3 train.py --batch_size 128 --epochs 2000 --feature_type baseline 
+export PYTHONUSERBASE=/projappl/projappl/project_2009235/edge
+
+python3 train.py --batch_size 128 --epochs 2000 --feature_type baseline
