@@ -55,7 +55,7 @@ class EDGE:
 #        feature_dim = 75 #For accelerometer features
 #        feature_dim = feature_type#
 
-        horizon_seconds = 5
+        horizon_seconds = 10
         FPS = 30
         self.horizon = horizon = horizon_seconds * FPS
 
@@ -63,6 +63,8 @@ class EDGE:
 
         #Loading model checkpoint
         checkpoint = None
+        checkpoint_path = "./weights/current_check.pt"
+        print("Getting latest checkpoint")
         if checkpoint_path != "":
             checkpoint = torch.load(
                 checkpoint_path, map_location=self.accelerator.device
@@ -192,9 +194,6 @@ class EDGE:
             for step, (x, cond, filename) in enumerate(
                 load_loop(train_data_loader)
             ):
-                print("HEREEEEE:")
-                print(x.shape)
-                print(cond.shape)
 #                total_loss, (loss, v_loss, fk_loss, foot_loss) = self.diffusion(
                 total_loss, (loss, v_loss, fk_loss) = self.diffusion(
                     x, cond, t_override=None

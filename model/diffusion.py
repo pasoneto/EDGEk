@@ -459,7 +459,7 @@ class GaussianDiffusion(nn.Module):
         assert noise.shape == x_recon.shape
 
         model_out = x_recon
-        print(f"Loss shape of output {model_out.shape}")
+        #print(f"Loss shape of output {model_out.shape}")
         if self.predict_epsilon:
             target = noise
         else:
@@ -517,7 +517,7 @@ class GaussianDiffusion(nn.Module):
             0.646 * fk_loss.mean(),
         )
 
-        print(f"Summarized losses: {losses}")
+        print(f"Summarized losses: {sum(losses)}")
         return sum(losses), losses
 
     def loss(self, x, cond, t_override=None):
@@ -580,6 +580,7 @@ class GaussianDiffusion(nn.Module):
         else:
             samples = shape
 
+        print("Unnormalizing for rendering sample")
         samples = normalizer.unnormalize(samples)
 
         q = samples
