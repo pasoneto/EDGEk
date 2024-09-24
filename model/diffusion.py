@@ -580,8 +580,8 @@ class GaussianDiffusion(nn.Module):
         else:
             samples = shape
 
-        print("Unnormalizing for rendering sample")
-        samples = normalizer.unnormalize(samples)
+        #print("Unnormalizing for rendering sample")
+        #samples = normalizer.unnormalize(samples)
 
         q = samples
         pos = samples
