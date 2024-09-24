@@ -2,7 +2,7 @@ import os
 from functools import partial
 from pathlib import Path
 
-import jukemirlib
+#import jukemirlib
 import numpy as np
 from tqdm import tqdm
 
