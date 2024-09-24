@@ -39,6 +39,7 @@ class EDGE:
         learning_rate=4e-4,
         weight_decay=0.02,
     ):
+        
         ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
         self.accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
         state = AcceleratorState()
@@ -65,7 +66,8 @@ class EDGE:
         checkpoint = None
         if checkpoint_path != "":
             checkpoint = torch.load(
-                checkpoint_path, map_location=self.accelerator.device
+                #checkpoint_path, map_location=self.accelerator.device
+                checkpoint_path, map_location=torch.device('cpu')
             )
             self.normalizer = checkpoint["normalizer"]
 

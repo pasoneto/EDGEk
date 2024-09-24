@@ -46,13 +46,13 @@ dataset_details = {
                      "nFeatures": 141},
   },
   "aist": {"watch": {"in": "/Users/pdealcan/Documents/github/EDGEk/data/test/baseline_feats/",
-                    "out": "/Users/pdealcan/Documents/github/EDGEk/data/test/predictedWatch/",
-                    "weights": "./weights/train_checkpoint_gyro_current5.pt",
+                    "out": "/Users/pdealcan/Documents/github/EDGEk/generatedDance/",
+                    "weights": "./weights/weight_reproduce.pt",
                     "nFeatures": 141},
-  }
+  },
 }
 
-dataset = "amass"
+dataset = "aist"
 feature = "watch"
 
 def test(opt):
@@ -74,11 +74,12 @@ def test(opt):
     all_cond = [] 
     for j in fNames:
         df = np.load(f"{inputsPath}{j}")
-
+        print("Shape here")
+        print(df.shape)
         filE = np.float32(df)
         filE = torch.from_numpy(filE)
             
-        fileE = filE.reshape(1, 150, -1)
+        fileE = filE.reshape(1, 300, -1)
 
         all_cond.append(fileE)
     
