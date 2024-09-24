@@ -63,8 +63,6 @@ class EDGE:
 
         #Loading model checkpoint
         checkpoint = None
-        checkpoint_path = "./weights/current_check.pt"
-        print("Getting latest checkpoint")
         if checkpoint_path != "":
             checkpoint = torch.load(
                 checkpoint_path, map_location=self.accelerator.device
@@ -146,6 +144,8 @@ class EDGE:
 
         # set normalizer
         self.normalizer = test_dataset.normalizer
+        print("Defining self normalizer here")
+        print(self.normalizer)
 
         # data loaders
         # decide number of workers based on cpu count
