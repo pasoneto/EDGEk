@@ -85,14 +85,14 @@ for k in folders:
 
                     #Getting acceleration from position
                     accel = positions.reshape(-1, positions.shape[1]*positions.shape[2])
-                    accel = differentiate_fast(accel, 2, newFreq)
+                    #accel = differentiate_fast(accel, 2, newFreq)
 
                     phone = (accel[:,3:6] + accel[:,12:15])/2 #average of hip (marker 2) and knee (marker 5)
                     watch = accel[:,63:66] #position of wrist
                     IMUs = np.concatenate([phone, watch], 1)
                 
                     #Slicing
-                    n_frames = accel.shape[0]
+                    n_frames = IMUs.shape[0]
                     rows = int(sr*seconds)
                     num_chunks = int(n_frames / rows) #int() always rounds down, therefore we never get an unequal sample size
                     #Slicing
@@ -102,8 +102,11 @@ for k in folders:
                         outName = f"/sliced_{i}_{j.replace('.npz', '')}"
                         positions_sliced = slicer2(positions, rows, i)
 
-                        #Gettint IMUs
+                        #Getting IMUs
                         accel_sliced = slicer2(IMUs, rows, i)
+                        
+                        #Differentiating
+                        accel_sliced = differentiate_fast(accel_sliced, 2, newFreq)
 
                         pd.DataFrame(positions_sliced.reshape(-1, positions_sliced.shape[1]*positions_sliced.shape[2])).to_pickle(f"{dirOutGround}/{outName}.pkl")
                         #pd.DataFrame(positions_sliced.reshape(-1, positions_sliced.shape[1]*positions_sliced.shape[2])).to_csv(f"{dirOutGround}{outName}.csv", index = False, header = False)
@@ -164,10 +167,10 @@ for j in files:
         IMUs = torch.cat([phone, watch], dim = 1)
 
         #Get acceleration for thigh and wrist
-        accel = differentiate_fast(IMUs, 2, sr) #right thigh, left wrist
+        #accel = differentiate_fast(IMUs, 2, sr) #right thigh, left wrist
 
         #Slicing
-        n_frames = accel.shape[0]
+        n_frames = IMUs.shape[0]
         rows = int(sr*seconds)
         num_chunks = int(n_frames / rows) #int() always rounds down, therefore we never get an unequal sample size
         for i in range(num_chunks):
@@ -184,7 +187,8 @@ for j in files:
             #pd.DataFrame(positions_sliced.reshape(-1, positions_sliced.shape[1]*positions_sliced.shape[2])).to_csv(f"{dirOutGround}/{outName}.csv", index = False, header = False)
 
             #Gettint IMUs
-            accel_sliced = slicer2(accel, rows, i)
+            accel_sliced = slicer2(IMUs, rows, i)
+            accel_sliced = differentiate_fast(accel_sliced, 2, sr) #right thigh, left wrist
 
             #Extract features
             outName2 = f"/sliced_{i}_{j.replace('.pkl', '')}"
