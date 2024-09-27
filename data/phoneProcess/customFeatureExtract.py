@@ -98,8 +98,9 @@ def extractFeats(acceleration_data, windowLength):
     pcas = getPCAproj(acceleration_data)
 
     all4 = np.column_stack([nPeaks, pcas])
-
-    allFeatures = np.column_stack([all0, all1, all2, all3, all4])
+     
+    allFeatures = np.column_stack([all0, all1, all2, all3, all4, acceleration_data])
+    print(allFeatures.shape)
 
     return allFeatures
 

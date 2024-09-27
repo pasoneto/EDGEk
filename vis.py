@@ -414,8 +414,8 @@ def visu(file, sr):
     import numpy as np
     
     try:
-        positions = pd.read_pickle(file)
-        #positions = pd.read_csv(file)
+        #positions = pd.read_pickle(file)
+        positions = pd.read_csv(file)
         positions = positions.to_numpy()
     except:
         positions = np.load(file, allow_pickle=True)
@@ -480,6 +480,7 @@ def visu(file, sr):
 #index = np.random.randint(0, 100)
 #print(all_vids[index])
 #visu(f"/Users/pdealcan/Documents/github/EDGEk/data/processed/train/output/{all_vids[index]}", 30)
-#visu(f"/Users/pdealcan/Downloads/current_pred.pkl", 30)
+visu(f"/Users/pdealcan/Downloads/current_pred.csv", 30)
 
+#visu(f"./data/test/motions_sliced/sliced_5_Clio_Flamenco_C3D_poses.pkl", 30)
 

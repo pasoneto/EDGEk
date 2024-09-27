@@ -90,7 +90,7 @@ def test(opt):
     fk_out = None
         
     print("Generating dances")
-    for i in range(len(all_cond)):
+    for i in range(10, 20):#len(all_cond)):
         data_tuple = None, all_cond[i], [fileNames[i]]
         print(f"Inputing file: {fNames[i]}")
         model.render_sample(
