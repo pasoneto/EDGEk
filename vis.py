@@ -438,6 +438,11 @@ def visu(file, sr):
     markers[-1].set_markerfacecolor('red')
     markers[-2].set_markerfacecolor('red')
 
+    markers[7].set_markerfacecolor('red')
+    markers[8].set_markerfacecolor('red')
+    markers[10].set_markerfacecolor('red')
+    markers[11].set_markerfacecolor('red')
+
     # Initialize empty lines for the bones (connections between parent-child joints)
     bones = [ax.plot([], [], [], color='blue')[0] for _ in range(M) if smpl_parents[_] != -1]
 

@@ -152,7 +152,13 @@ for j in files:
         #Convert to position
         positions, rotations = smplToPosition(df['smpl_trans'], df['smpl_poses'], df['smpl_scaling'], aist = True)
         positions = positions[0]
-      
+
+        #Get foot contact
+#        feet = positions[:, (7, 8, 10, 11)]
+#        feetv = torch.zeros(feet.shape[:3])
+#        feetv[:, :-1] = (feet[:, 1:] - feet[:, :-1]).norm(dim=-1)
+#        contacts = (feetv < 0.01).to(local_q)  # cast to right dtype
+
         #Resample
         data_stride = sr //newFreq 
         positions = positions[:: data_stride, :, :] #Resampling to 30 fps

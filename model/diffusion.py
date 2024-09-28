@@ -511,28 +511,27 @@ class GaussianDiffusion(nn.Module):
         fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
         fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
 
-
         # foot skate loss
         foot_idx = [7, 8, 10, 11]
 
         # find static indices consistent with model's own predictions
-        static_idx = model_contact > 0.95  # N x S x 4
-        model_feet = model_out[:, :, foot_idx]  # foot positions (N, S, 4, 3)
-        model_foot_v = torch.zeros_like(model_feet)
-        model_foot_v[:, :-1] = (
-            model_feet[:, 1:, :, :] - model_feet[:, :-1, :, :]
-        )  # (N, S-1, 4, 3)
-        model_foot_v[~static_idx] = 0
-        foot_loss = self.loss_fn(
-            model_foot_v, torch.zeros_like(model_foot_v), reduction="none"
-        )
-        foot_loss = reduce(foot_loss, "b ... -> b (...)", "mean")
+#        static_idx = model_contact > 0.95  # N x S x 4
+#        model_feet = model_out[:, :, foot_idx]  # foot positions (N, S, 4, 3)
+#        model_foot_v = torch.zeros_like(model_feet)
+#        model_foot_v[:, :-1] = (
+#            model_feet[:, 1:, :, :] - model_feet[:, :-1, :, :]
+#        )  # (N, S-1, 4, 3)
+#        model_foot_v[~static_idx] = 0
+#        foot_loss = self.loss_fn(
+#            model_foot_v, torch.zeros_like(model_foot_v), reduction="none"
+#        )
+#        foot_loss = reduce(foot_loss, "b ... -> b (...)", "mean")
 
         losses = (
             0.636 * loss.mean(),
             2.964 * v_loss.mean(),
             0.646 * fk_loss.mean(),
-            10.942 * foot_loss.mean()
+#            10.942 * foot_loss.mean()
         )
 
         print(f"Summarized losses: {sum(losses)}")
