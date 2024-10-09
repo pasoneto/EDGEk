@@ -14,6 +14,9 @@ from matplotlib.colors import ListedColormap
 #                                  quaternion_multiply)
 from tqdm import tqdm
 
+from dataset.preprocess import Normalizer, vectorize_many
+from dataset.quaternion import ax_to_6v
+
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
 
@@ -371,6 +374,38 @@ def smplToPosition(pos, q, scale, aist = True):
 
     return positions, rotations
 
+def smplTo6d(pos, q, scale, aist = True):
+    smpl = SMPLSkeleton()
+    # to Tensor
+    pos /= scale #Normalize by scale
+    root_pos = torch.Tensor(np.array([pos]))
+    local_q = torch.Tensor(np.array([q]))
+    # to ax
+    bs, sq, c = local_q.shape
+    local_q = local_q.reshape((bs, sq, -1, 3))
+    if aist:
+        # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
+        root_q = local_q[:, :, :1, :]  # sequence x 1 x 3 #Extracting the root axis angles
+        root_q_quat = axis_angle_to_quaternion(root_q) #Converting to quaternions
+        rotation = torch.Tensor(
+            [0.7071068, 0.7071068, 0, 0]
+        )  # 90 degrees about the x axis
+        root_q_quat = quaternion_multiply(rotation, root_q_quat)
+        root_q = quaternion_to_axis_angle(root_q_quat) #Back to quaternions
+        local_q[:, :, :1, :] = root_q #Assign new rotated root
+       # don't forget to rotate the root position too 😩
+        pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
+        root_pos = pos_rotation.transform_points(
+            root_pos
+        )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
+    # do FK
+
+    # local_q: axis angle rotations for local rotation of each joint 
+    # root_os: root-joint positions
+    l = [root_pos, local_q]
+    l = global_pose_vec_input = vectorize_many(l).float().detach()
+
+    return l
 
 def create_middle_marker(positions, indices):
     r"""
@@ -485,7 +520,8 @@ def visu(file, sr):
 #index = np.random.randint(0, 100)
 #print(all_vids[index])
 #visu(f"/Users/pdealcan/Documents/github/EDGEk/data/processed/train/output/{all_vids[index]}", 30)
-visu(f"/Users/pdealcan/Downloads/current_pred.csv", 30)
+#visu(f"./current_pred.csv", 30)
 
 #visu(f"./data/test/motions_sliced/sliced_5_Clio_Flamenco_C3D_poses.pkl", 30)
+
 

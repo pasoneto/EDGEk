@@ -189,15 +189,15 @@ class EDGE:
             avg_loss = 0
             avg_vloss = 0
             avg_fkloss = 0
-            avg_footloss = 0
+            #avg_footloss = 0
             # train
             self.train()
 #            for step, (x, cond, filename, wavnames) in enumerate(
             for step, (x, cond, filename) in enumerate(
                 load_loop(train_data_loader)
             ):
-                total_loss, (loss, v_loss, fk_loss, foot_loss) = self.diffusion(
-                #total_loss, (loss, v_loss, fk_loss) = self.diffusion(
+                #total_loss, (loss, v_loss, fk_loss, foot_loss) = self.diffusion(
+                total_loss, (loss, v_loss, fk_loss) = self.diffusion(
                     x, cond, t_override=None
                 )
 
@@ -214,7 +214,7 @@ class EDGE:
                     avg_loss += loss.detach().cpu().numpy()
                     avg_vloss += v_loss.detach().cpu().numpy()
                     avg_fkloss += fk_loss.detach().cpu().numpy()
-                    avg_footloss += foot_loss.detach().cpu().numpy()
+                    #avg_footloss += foot_loss.detach().cpu().numpy()
                     if step % opt.ema_interval == 0:
                         self.diffusion.ema.update_model_average(
                             self.diffusion.master_model, self.diffusion.model
@@ -231,12 +231,12 @@ class EDGE:
                     avg_loss /= len(train_data_loader)
                     avg_vloss /= len(train_data_loader)
                     avg_fkloss /= len(train_data_loader)
-                    avg_footloss /= len(train_data_loader)
+                    #avg_footloss /= len(train_data_loader)
                     log_dict = {
                         "Train Loss": avg_loss,
                         "V Loss": avg_vloss,
                         "FK Loss": avg_fkloss,
-                        "Foot Loss": avg_footloss,
+                        #"Foot Loss": avg_footloss,
                     }
 #                    wandb.log(log_dict)
                     ckpt = {
