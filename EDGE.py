@@ -47,7 +47,7 @@ class EDGE:
         use_baseline_feats = True
 
         pos_dim = 3
-        rot_dim = 24 * 3  # 24 joints, 3dof
+        rot_dim = 25 * 3  # 25 joints, 3dof
 #        self.repr_dim = repr_dim = pos_dim + rot_dim + 4
         self.repr_dim = repr_dim = rot_dim #pos_dim + rot_dim + 4
 

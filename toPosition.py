@@ -127,6 +127,7 @@ if True:
                             #Getting features
                             outName2 = f"/sliced_{i}_{j.replace('.npz', '')}"
                             df = extractFeats(accel_sliced, accel_sliced.shape[0])
+                            print(df.shape)
                             df = np.float32(df)
                             np.save(f"{dirOutFeats}{outName2}", df)
                         else:
