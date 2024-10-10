@@ -125,7 +125,7 @@ def get_axrange(poses):
     z_max = pose[:, 2].max()
 
     xdiff = x_max - x_min
-    ydiff = y_max - y_min
+    ydiff = y_max - y_min 
     zdiff = z_max - z_min
 
     biggestdiff = max([xdiff, ydiff, zdiff])
@@ -369,6 +369,7 @@ def smplToPosition(pos, q, scale, aist = True):
     # do FK
     # local_q: axis angle rotations for local rotation of each joint 
     # root_pos: root-joint positions
+
     positions, rotations = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
     rotations = torch.stack(rotations).permute(1, 2, 0, 3) #Reorder global joint rotations
 
@@ -400,11 +401,18 @@ def smplTo6d(pos, q, scale, aist = True):
         )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
     # do FK
 
+    local_q = local_q[:, :, 0:len(smpl_offsets), :]
+
     # local_q: axis angle rotations for local rotation of each joint 
     # root_os: root-joint positions
-    l = [root_pos, local_q]
-    l = global_pose_vec_input = vectorize_many(l).float().detach()
+    
+    root_pos = root_pos[0]
+    local_q = local_q[0].reshape(-1, local_q[0].shape[1]*local_q[0].shape[2])
 
+    l = torch.cat((root_pos, local_q), dim=1)
+
+    #l = global_pose_vec_input = vectorize_many(l).float().detach()
+    #l = l.reshape(-1, l.shape[1]*l.shape[2])
     return l
 
 def create_middle_marker(positions, indices):
@@ -438,6 +446,7 @@ def center_mean(df):
     x = torch.mean(torch.mean(df[:,0:df.shape[1]:3], dim = 0))
     y = torch.mean(torch.mean(df[:,1:df.shape[1]:3], dim = 0))
     z = torch.mean(torch.mean(df[:,2:df.shape[1]:3], dim = 0))
+    print("got here")
     df = translate(df, [-x, -y, -z]);
     return(df)
 
@@ -449,17 +458,23 @@ def visu(file, sr):
     import numpy as np
     
     try:
-        #positions = pd.read_pickle(file)
-        positions = pd.read_csv(file)
-        positions = positions.to_numpy()
+        positions = pd.read_pickle(file).to_numpy()
+#        positions = pd.read_csv(file)
+        #positions = positions.to_numpy()
+        positions, _ = smplToPosition(positions[:,0:3], positions[:,3:75], 1, aist = False)
+        positions = positions[0]
+
+        #positions = positions.to_numpy()
+        #positions = positions.reshape(-1, positions.shape[1]*positions.shape[2])
     except:
         positions = np.load(file, allow_pickle=True)
     
     N = positions.shape[0]  # number of timesteps
-    M = int(positions.shape[1] / 3)  # number of markers
+#    M = int(positions.shape[1] / 3)  # number of markers
+    M = int(positions.shape[1])  # number of markers
 
     # Reshape positions to have dimensions (N, M, 3)
-    positions = positions.reshape(N, M, 3)
+#    positions = positions.reshape(N, M, 3)
 
     # Create a figure and axis
     fig = plt.figure()
@@ -522,6 +537,7 @@ def visu(file, sr):
 #visu(f"/Users/pdealcan/Documents/github/EDGEk/data/processed/train/output/{all_vids[index]}", 30)
 #visu(f"./current_pred.csv", 30)
 
-#visu(f"./data/test/motions_sliced/sliced_5_Clio_Flamenco_C3D_poses.pkl", 30)
+#visu(f"./data/test/motions_sliced/sliced_1_CLIO_Outsai_poses.pkl", 30)
+visu(f"./data/train/motions_sliced/sliced_0_gBR_sBM_cAll_d04_mBR1_ch04.pkl", 30)
 
 

@@ -17,8 +17,6 @@ from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
 from dataset.quaternion import ax_from_6v, quat_slerp
 
-#amass
-
 def slicer(df, rows, i):
     df_slice = {}
     df_slice['trans'] = df['trans'][i * rows : (i + 1) * rows, :]
@@ -66,32 +64,27 @@ if True:
                         sr = df['mocap_framerate'] 
 
                         df['scaling'] = 1
-                        
-                        df['trans'] = df['trans'][:,0:24]
-                        df['poses'] = df['poses'][:,0:24*3]
-                        
+                       
+                        df['trans'] = df['trans']
+                        df['poses'] = df['poses']
+
                         #Determine sampling rate stride
                         data_stride = int(sr //newFreq)
 
                         #Get angles only for output
                         if useAngles:
+
+                            df['trans'] = center_mean(torch.from_numpy(df['trans']))
+                            df['trans'] = df['trans'].numpy()
+
                             out_pos = smplTo6d(df['trans'], df['poses'], df['scaling'], aist = False)
-                            out_pos = out_pos[0]
                             out_pos = out_pos[:: data_stride, :] #Resampling to 30 fps
-                            print("Shape of angles:")
-                            print(out_pos.shape)
 
                         #Get position entire set
                         positions, rotations = smplToPosition(df['trans'], df['poses'], df['scaling'], aist = False)
                         positions = positions[0]
                         
-                        print("Shape of positions:")
-                        print(positions.shape)
-
                         #Resample
-                        if data_stride != 4:
-                            print("Different stride!!!!!!!!!!!!!!!!!!")
-                            print(data_stride)
                         positions = positions[:: data_stride, :, :] #Resampling to 30 fps
                         sr = newFreq
 
@@ -123,24 +116,21 @@ if True:
 
                             #Differentiating
                             accel_sliced = differentiate_fast(accel_sliced, 2, newFreq)
-                            
+
                             if useAngles:
+                                print(f"Print output for AMASS is of shape: {positions_sliced.shape}")
                                 pd.DataFrame(positions_sliced).to_pickle(f"{dirOutGround}/{outName}.pkl")
                             else:
                                 positions_sliced = center_mean(positions_sliced).reshape(original_shape[0], original_shape[1], original_shape[2])
                                 pd.DataFrame(positions_sliced.reshape(-1, positions_sliced.shape[1]*positions_sliced.shape[2])).to_pickle(f"{dirOutGround}/{outName}.pkl")
-                            #pd.DataFrame(positions_sliced.reshape(-1, positions_sliced.shape[1]*positions_sliced.shape[2])).to_csv(f"{dirOutGround}{outName}.csv", index = False, header = False)
-                            
+
                             #Getting features
                             outName2 = f"/sliced_{i}_{j.replace('.npz', '')}"
                             df = extractFeats(accel_sliced, accel_sliced.shape[0])
                             df = np.float32(df)
                             np.save(f"{dirOutFeats}{outName2}", df)
                         else:
-                            print("Excluded file")
-                        #print(f"Done {j}")
-
-            print(f"Finished folder {k}")
+                            pass 
         print(f"Finished AMASS dataset")
 
 
@@ -175,27 +165,19 @@ if True:
 
             #Convert to position
             if(useAngles):
+                #Centering motion translations with zero mean
+                df['smpl_trans'] = center_mean(torch.from_numpy(df['smpl_trans']))
+                df['smpl_trans'] = df['smpl_trans'].numpy()
+
                 out_pos = smplTo6d(df['smpl_trans'], df['smpl_poses'], df['smpl_scaling'], aist = True)
-                out_pos = out_pos[0]
                 out_pos = out_pos[:: data_stride, :] #Resampling to 30 fps
-                print("Shape of angles:")
-                print(out_pos.shape)
 
             positions, rotations = smplToPosition(df['smpl_trans'], df['smpl_poses'], df['smpl_scaling'], aist = True)
             positions = positions[0]
 
-            #Get foot contact
-    #        feet = positions[:, (7, 8, 10, 11)]
-    #        feetv = torch.zeros(feet.shape[:3])
-    #        feetv[:, :-1] = (feet[:, 1:] - feet[:, :-1]).norm(dim=-1)
-    #        contacts = (feetv < 0.01).to(local_q)  # cast to right dtype
-
             #Resample positions
             positions = positions[:: data_stride, :, :] #Resampling to 30 fps
             sr = newFreq
-
-            print("Shape of positions:")
-            print(positions.shape)
 
             #Getting IMUs
             phone = [1, 4] #right_hip, right knee 
@@ -225,8 +207,8 @@ if True:
                 original_shape = positions_sliced.shape
 
                 if useAngles:
-                    print(f"Print output for AIST is of shape: {positions_sliced.shape}")
                     pd.DataFrame(positions_sliced).to_pickle(f"{dirOutGround}/{outName}.pkl")
+                    print(f"Print output for AIST is of shape: {positions_sliced.shape}")
                 else:
                     positions_sliced = center_mean(positions_sliced).reshape(original_shape[0], original_shape[1], original_shape[2])
                     pd.DataFrame(positions_sliced.reshape(-1, positions_sliced.shape[1]*positions_sliced.shape[2])).to_pickle(f"{dirOutGround}/{outName}.pkl")
