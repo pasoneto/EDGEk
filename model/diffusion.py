@@ -15,7 +15,7 @@ from p_tqdm import p_map
 from tqdm import tqdm
 
 #from dataset.quaternion import ax_from_6v, quat_slerp
-from vis import skeleton_render
+from vis import skeleton_render, smplToPosition
 
 from .utils import extract, make_beta_schedule
 
@@ -470,12 +470,6 @@ class GaussianDiffusion(nn.Module):
         loss = reduce(loss, "b ... -> b (...)", "mean")
         loss = loss * extract(self.p2_loss_weight, t, loss.shape)
 
-        # split off contact from the rest
-#        model_contact, model_out = torch.split(
-#            model_out, (4, model_out.shape[2] - 4), dim=2
-#        )
-#        target_contact, target = torch.split(target, (4, target.shape[2] - 4), dim=2)
-
         # velocity loss
         target_v = target[:, 1:] - target[:, :-1]
         model_out_v = model_out[:, 1:] - model_out[:, :-1]
@@ -484,20 +478,8 @@ class GaussianDiffusion(nn.Module):
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
         # FK loss
-#        b, s, c = model_out.shape
-
-        # unnormalize
-#        model_out = self.normalizer.unnormalize(model_out)
-#        target = self.normalizer.unnormalize(target)
-        # X, Q
-#        model_x = model_out[:, :, :3]
-#        model_q = ax_from_6v(model_out[:, :, 3:].reshape(b, s, -1, 6))
-#        target_x = target[:, :, :3]
-#        target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
-
-        # perform FK
-#        model_xp = self.smpl.forward(model_q, model_x)
-#        target_xp = self.smpl.forward(target_q, target_x)
+        model_out, _ = torch.tensor([smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True) for b in model_out])
+        target, _ = torch.tensor([smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True) for b in target])
 
 #        fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
         fk_loss = self.loss_fn(model_out, target, reduction="none")
@@ -505,7 +487,7 @@ class GaussianDiffusion(nn.Module):
         fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
 
         # foot skate loss
-        foot_idx = [7, 8, 10, 11]
+#        foot_idx = [7, 8, 10, 11]
 
         # find static indices consistent with model's own predictions
 #        static_idx = model_contact > 0.95  # N x S x 4
