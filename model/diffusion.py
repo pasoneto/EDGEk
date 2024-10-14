@@ -478,6 +478,8 @@ class GaussianDiffusion(nn.Module):
         m_out = []
         t_out = []
         for k in range(len(model_out)):
+            print("started the loop")
+            print(f"shape of model is: {model_out.shape}")
             m, _ = smplToPosition(model_out[k][:,0:3], model_out[k][:,3:75], 1, aist = True)
             t, _ = smplToPosition(target[k][:,0:3], target[k][:,3:75], 1, aist = True)
             print(f"inside for loop, shape of m: {m.shape}")            
