@@ -459,11 +459,13 @@ class GaussianDiffusion(nn.Module):
         assert noise.shape == x_recon.shape
 
         model_out = x_recon
-        print(f"Loss shape of output as it came: {model_out.shape}")
         if self.predict_epsilon:
             target = noise
         else:
             target = x_start
+
+        print(f"Loss shape of model as it came: {model_out.shape}")
+        print(f"Loss shape of target as it came: {target.shape}")
 
         # full reconstruction loss
         loss = self.loss_fn(model_out, target, reduction="none")
@@ -478,10 +480,18 @@ class GaussianDiffusion(nn.Module):
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
         # FK loss
-        model_out, _ = torch.tensor([smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True)[0] for b in model_out])
-        target, _ = torch.tensor([smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True)[0] for b in target])
+        model_out = [smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True) for b in model_out]
+        target = [smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True) for b in target]
 
-        print(f"Loss shape of output after FK: {model_out.shape}")
+        model_out = torch.tensor([a[0] for a in model_out])
+        target = torch.tensor([a[0] for a in target])
+
+        print("Right after running FK and getting only position:") 
+        print(model_out.shape)
+        print(target.shape)
+
+        print(f"Loss shape of model after FK: {model_out.shape}")
+        print(f"Loss shape of target after FK: {target.shape}")
 
 #        fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
         fk_loss = self.loss_fn(model_out, target, reduction="none")
