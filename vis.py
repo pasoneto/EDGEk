@@ -411,8 +411,6 @@ def smplTo6d(pos, q, scale, aist = True):
 
     l = torch.cat((root_pos, local_q), dim=1)
 
-    #l = global_pose_vec_input = vectorize_many(l).float().detach()
-    #l = l.reshape(-1, l.shape[1]*l.shape[2])
     return l
 
 def create_middle_marker(positions, indices):
@@ -537,7 +535,7 @@ def visu(file, sr):
 #visu(f"/Users/pdealcan/Documents/github/EDGEk/data/processed/train/output/{all_vids[index]}", 30)
 #visu(f"./current_pred.csv", 30)
 
-#visu(f"./data/test/motions_sliced/sliced_1_CLIO_Outsai_poses.pkl", 30)
-visu(f"./data/train/motions_sliced/sliced_0_gBR_sBM_cAll_d04_mBR1_ch04.pkl", 30)
+visu(f"./data/test/motions_sliced/sliced_1_CLIO_Outsai_poses.pkl", 30)
+#visu(f"./data/train/motions_sliced/sliced_0_gBR_sBM_cAll_d04_mBR1_ch04.pkl", 30)
 
 

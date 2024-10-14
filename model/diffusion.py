@@ -459,29 +459,22 @@ class GaussianDiffusion(nn.Module):
         assert noise.shape == x_recon.shape
 
         model_out = x_recon
-        #print(f"Loss shape of output {model_out.shape}")
+        print(f"Loss shape of output {model_out.shape}")
         if self.predict_epsilon:
             target = noise
         else:
             target = x_start
 
-#        print(f"inside p_losses. x_noisy: {x_noisy}")
-#        print(f"inside p_losses. cond: {cond}")
-#        print(f"inside p_losses. x_recon: {x_recon}")
-#        print(f"inside p_losses. target: {target}")
-
         # full reconstruction loss
         loss = self.loss_fn(model_out, target, reduction="none")
-#        print(f"Model output: {model_out[0]}")
-#        print(f"Model prediction: {target[0]}")
         loss = reduce(loss, "b ... -> b (...)", "mean")
         loss = loss * extract(self.p2_loss_weight, t, loss.shape)
 
         # split off contact from the rest
-        model_contact, model_out = torch.split(
-            model_out, (4, model_out.shape[2] - 4), dim=2
-        )
-        target_contact, target = torch.split(target, (4, target.shape[2] - 4), dim=2)
+#        model_contact, model_out = torch.split(
+#            model_out, (4, model_out.shape[2] - 4), dim=2
+#        )
+#        target_contact, target = torch.split(target, (4, target.shape[2] - 4), dim=2)
 
         # velocity loss
         target_v = target[:, 1:] - target[:, :-1]
