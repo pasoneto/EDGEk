@@ -450,11 +450,6 @@ class GaussianDiffusion(nn.Module):
         noise = torch.randn_like(x_start)
         x_noisy = self.q_sample(x_start=x_start, t=t, noise=noise)
 
-        # reconstruct HERE IS THE PROBLEM
-#        print(f"x_noisy: {x_noisy.shape}: {x_noisy[0]}")
-#        print(f"cond: {cond.shape}: {cond[0]}")
-#        print(f"t: {t}")
-
         x_recon = self.model(x_noisy, cond, t, cond_drop_prob=self.cond_drop_prob)
         assert noise.shape == x_recon.shape
 
@@ -480,15 +475,18 @@ class GaussianDiffusion(nn.Module):
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
         # FK loss
-        model_out = [smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True) for b in model_out]
-        target = [smplToPosition(b[:,0:3], b[:,3:75], 1, aist = True) for b in target]
+        m_out = []
+        t_out = []
+        for k in range(len(model_out)):
+            m, _ = smplToPosition(model_out[k][:,0:3], model_out[k][:,3:75], 1, aist = True)
+            t, _ = smplToPosition(target[k][:,0:3], target[k][:,3:75], 1, aist = True)
+            print(f"inside for loop, shape of m: {m.shape}")            
+            print(f"inside for loop, shape of t: {t.shape}")            
+            m_out.append(m[0])
+            t_out.append(t[0])
 
-        model_out = torch.tensor([a[0] for a in model_out])
-        target = torch.tensor([a[0] for a in target])
-
-        print("Right after running FK and getting only position:") 
-        print(model_out.shape)
-        print(target.shape)
+        model_out = torch.tensor(m_out)
+        target = torch.tensor(t_out)
 
         print(f"Loss shape of model after FK: {model_out.shape}")
         print(f"Loss shape of target after FK: {target.shape}")
