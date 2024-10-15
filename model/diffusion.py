@@ -14,6 +14,8 @@ from p_tqdm import p_map
 #                                  quaternion_to_axis_angle)
 from tqdm import tqdm
 
+from vis import SMPLSkeleton
+
 from dataset.quaternion import ax_from_6v, quat_slerp
 from vis import skeleton_render, smplToPosition
 
@@ -481,8 +483,9 @@ class GaussianDiffusion(nn.Module):
         target_x = target[:, :, :3]
         target_q = target[:, :, 3:].reshape(b, s, -1, 3)
 
-        model_xp = self.smpl.forward(model_q, model_x)
-        target_xp = self.smpl.forward(target_q, target_x)
+        smpl = SMPLSkeleton()
+        model_xp = smpl.forward(model_q, model_x)
+        target_xp = smpl.forward(target_q, target_x)
 
         print(f"Loss shape of model after FK: {model_out.shape}")
         print(f"Loss shape of target after FK: {target.shape}")
