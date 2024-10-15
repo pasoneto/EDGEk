@@ -477,9 +477,9 @@ class GaussianDiffusion(nn.Module):
         #FK loss
         b, s, c = model_out.shape
         model_x = model_out[:, :, :3]
-        model_q = model_out[:, :, 3:]
+        model_q = model_out[:, :, 3:].reshape(b, s, -1, 3)
         target_x = target[:, :, :3]
-        target_q = target[:, :, 3:]
+        target_q = target[:, :, 3:].reshape(b, s, -1, 3)
 
         model_xp = self.smpl.forward(model_q, model_x)
         target_xp = self.smpl.forward(target_q, target_x)
