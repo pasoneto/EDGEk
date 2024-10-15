@@ -14,7 +14,7 @@ from p_tqdm import p_map
 #                                  quaternion_to_axis_angle)
 from tqdm import tqdm
 
-#from dataset.quaternion import ax_from_6v, quat_slerp
+from dataset.quaternion import ax_from_6v, quat_slerp
 from vis import skeleton_render, smplToPosition
 
 from .utils import extract, make_beta_schedule
@@ -474,28 +474,20 @@ class GaussianDiffusion(nn.Module):
         v_loss = reduce(v_loss, "b ... -> b (...)", "mean")
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
-        # FK loss
-        m_out = []
-        t_out = []
-        for k in range(len(model_out)):
-            print("started the loop")
-            print(f"shape of model is: {model_out.shape}")
-            print(f"type of model after getting k-th batch: {type(model_out)}")
-            m, _ = smplToPosition(model_out[k][:,0:3].numpy(), model_out[k][:,3:75].numpy(), 1, aist = True)
-            t, _ = smplToPosition(target[k][:,0:3].numpy(), target[k][:,3:75].numpy(), 1, aist = True)
-            print(f"inside for loop, shape of m: {m.shape}")            
-            print(f"inside for loop, shape of t: {t.shape}")            
-            m_out.append(m[0])
-            t_out.append(t[0])
+        #FK loss
+        b, s, c = model_out.shape
+        model_x = model_out[:, :, :3]
+        model_q = ax_from_6v(model_out[:, :, 3:].reshape(b, s, -1, 6))
+        target_x = target[:, :, :3]
+        target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
 
-        model_out = torch.Tensor(m_out)
-        target = torch.Tensor(t_out)
+        model_xp = self.smpl.forward(model_q, model_x)
+        target_xp = self.smpl.forward(target_q, target_x)
 
         print(f"Loss shape of model after FK: {model_out.shape}")
         print(f"Loss shape of target after FK: {target.shape}")
 
-#        fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
-        fk_loss = self.loss_fn(model_out, target, reduction="none")
+        fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
         fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
         fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
 
