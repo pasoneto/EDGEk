@@ -481,7 +481,7 @@ class GaussianDiffusion(nn.Module):
         model_q = model_out[:, :, 3:]
         target_x = target[:, :, :3]
         target_q = target[:, :, 3:]
-
+        
         model_xp = smplToPositionLoss(model_x, model_q)
         target_xp = smplToPositionLoss(target_x, target_q)
 

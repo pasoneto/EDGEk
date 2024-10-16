@@ -417,14 +417,14 @@ def smplToPositionLoss(pos, q):
     smpl = SMPLSkeleton()
 
     # to Tensor
-    root_pos = torch.Tensor(pos)
-    local_q = torch.Tensor(q)
+    #root_pos = torch.Tensor(pos)
+    #local_q = torch.Tensor(q)
 
     # to ax
-    bs, sq, _ = local_q.shape
-    local_q = local_q.reshape((bs, sq, -1, 3))
+    bs, sq, _ = q.shape
+    local_q = q.reshape((bs, sq, -1, 3))
 
-    positions, _ = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
+    positions, _ = smpl.forward(local_q, pos)  # batch x sequence x 24 x 3
 
     return positions
 
