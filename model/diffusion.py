@@ -17,7 +17,7 @@ from tqdm import tqdm
 from vis import SMPLSkeleton
 
 from dataset.quaternion import ax_from_6v, quat_slerp
-from vis import skeleton_render, smplToPosition
+from vis import skeleton_render, smplToPosition, smplToPositionLoss
 
 from .utils import extract, make_beta_schedule
 
@@ -477,15 +477,13 @@ class GaussianDiffusion(nn.Module):
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
         #FK loss
-        b, s, c = model_out.shape
         model_x = model_out[:, :, :3]
-        model_q = model_out[:, :, 3:].reshape((b, s, -1, 3))
+        model_q = model_out[:, :, 3:]
         target_x = target[:, :, :3]
-        target_q = target[:, :, 3:].reshape((b, s, -1, 3))
+        target_q = target[:, :, 3:]
 
-        smpl = SMPLSkeleton()
-        model_xp = smpl.forward(model_q, model_x)
-        target_xp = smpl.forward(target_q, target_x)
+        model_xp = smplToPositionLoss(model_x, model_q)
+        target_xp = smplToPositionLoss(target_x, target_q)
 
         print(f"Loss shape of model after FK: {model_out.shape}")
         print(f"Loss shape of target after FK: {target.shape}")
