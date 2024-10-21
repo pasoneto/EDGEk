@@ -260,7 +260,6 @@ def skeleton_render(
             anim.save(gifname, savefig_kwargs={"transparent": True, "facecolor": "none"},)
     plt.close()
 
-
 class SMPLSkeleton:
     def __init__(
         self, device=None,
@@ -312,7 +311,7 @@ class SMPLSkeleton:
         for i in range(self._offsets.shape[0]):
             if self._parents[i] == -1:
                 positions_world.append(root_positions)
-                rotations_world.append(rotations[:, :, 0])
+                rotations_world.append(rotations[:, :, 0]) #Root is its own local and global rotation
             else:
                 positions_world.append(
                     quaternion_apply(
@@ -321,13 +320,82 @@ class SMPLSkeleton:
                     + positions_world[self._parents[i]]
                 )
                 if self._has_children[i]:
-                    rotations_world.append(
-                        quaternion_multiply(
-                            rotations_world[self._parents[i]], rotations[:, :, i]
-                        )
-                    )
+                    #User code: convert quaternion to axis_angles
+                    global_rot = quaternion_multiply(rotations_world[self._parents[i]], rotations[:, :, i]) #Find child's rotation
+                    rotations_world.append(global_rot)
                 else:
                     # This joint is a terminal node -> it would be useless to compute the transformation
-                    rotations_world.append(None)
+                    # Yes, it's useless for position calculation, but I still wanna know its global orientation
+#                    print("Final")
+#                    rotations_world.append(None)
+                    global_rot = quaternion_multiply(rotations_world[self._parents[i]], rotations[:, :, i]) #Find child's rotation
+#                    global_rot = quaternion_to_axis_angle(global_rot)
+                    rotations_world.append(global_rot)
 
-        return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2)
+        return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2), rotations_world
+
+def visu(positions, sr):
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.animation import FuncAnimation
+    import pandas as pd
+    import numpy as np
+    
+    N = positions.shape[0]  # number of timesteps
+    M = int(positions.shape[1])  # number of markers
+
+    # Create a figure and axis
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    # Initialize empty lines and markers for each marker
+    lines = [ax.plot([], [], [])[0] for _ in range(M)]
+    markers = [ax.plot([], [], [], marker='o', color='blue')[0] for _ in range(M)]
+    
+    # Highlight the last two markers in red
+    markers[-1].set_markerfacecolor('red')
+    markers[-2].set_markerfacecolor('red')
+
+    markers[7].set_markerfacecolor('red')
+    markers[8].set_markerfacecolor('red')
+    markers[10].set_markerfacecolor('red')
+    markers[11].set_markerfacecolor('red')
+
+    # Initialize empty lines for the bones (connections between parent-child joints)
+    bones = [ax.plot([], [], [], color='blue')[0] for _ in range(M) if smpl_parents[_] != -1]
+
+    # Set axis limits
+    ax.set_xlim(-1, 1)
+    ax.set_ylim(-1, 1)
+    ax.set_zlim(-1, 1)
+
+    # Animation function to update the plot
+    def update(frame):
+        for i in range(M):
+            # Update marker positions
+            x = positions[frame, i, 0]
+            y = positions[frame, i, 1]
+            z = positions[frame, i, 2]
+            lines[i].set_data([x], [y])
+            lines[i].set_3d_properties([z])
+            markers[i].set_data([x], [y])
+            markers[i].set_3d_properties([z])
+            
+            # Draw lines between each marker and its parent
+            if smpl_parents[i] != -1:
+                parent_idx = smpl_parents[i]
+                parent_x = positions[frame, parent_idx, 0]
+                parent_y = positions[frame, parent_idx, 1]
+                parent_z = positions[frame, parent_idx, 2]
+                bones[i-1].set_data([x, parent_x], [y, parent_y])
+                bones[i-1].set_3d_properties([z, parent_z])
+        
+        return lines + markers + bones
+
+    # Create animation
+    fr = sr
+    interval = 1000 / fr
+    ani = FuncAnimation(fig, update, frames=N, blit=True, interval=interval)
+
+    plt.show()
+

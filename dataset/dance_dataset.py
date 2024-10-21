@@ -24,7 +24,7 @@ class AISTPPDataset(Dataset):
         data_path: str,
         backup_path: str,
         train: bool,
-        feature_type: str = "jukebox",
+        feature_type: str = "accel",
         normalizer: Any = None,
         data_len: int = -1,
         include_contacts: bool = True,
@@ -72,7 +72,6 @@ class AISTPPDataset(Dataset):
         self.data = {
             "pose": pose_input,
             "filenames": data["filenames"],
-            "wavs": data["wavs"],
         }
         assert len(pose_input) == len(data["filenames"])
         self.length = len(pose_input)
@@ -82,8 +81,8 @@ class AISTPPDataset(Dataset):
 
     def __getitem__(self, idx):
         filename_ = self.data["filenames"][idx]
-        feature = torch.from_numpy(np.load(filename_))
-        return self.data["pose"][idx], feature, filename_, self.data["wavs"][idx]
+        feature = torch.from_numpy(np.load(filename_, allow_pickle=True))
+        return self.data["pose"][idx], feature, filename_
 
     def load_aistpp(self):
         # open data path
@@ -95,32 +94,28 @@ class AISTPPDataset(Dataset):
         # data
         #   |- train
         #   |    |- motion_sliced
-        #   |    |- wav_sliced
         #   |    |- baseline_features
         #   |    |- jukebox_features
+        #   |    |- accel_feats **New
         #   |    |- motions
-        #   |    |- wavs
-
+        
+        #User code begins
         motion_path = os.path.join(split_data_path, "motions_sliced")
-        sound_path = os.path.join(split_data_path, f"{self.feature_type}_feats")
-        wav_path = os.path.join(split_data_path, f"wavs_sliced")
-        # sort motions and sounds
+        accel_path = os.path.join(split_data_path, f"features")
+
         motions = sorted(glob.glob(os.path.join(motion_path, "*.pkl")))
-        features = sorted(glob.glob(os.path.join(sound_path, "*.npy")))
-        wavs = sorted(glob.glob(os.path.join(wav_path, "*.wav")))
+        features = sorted(glob.glob(os.path.join(accel_path, "*.pkl")))
 
         # stack the motions and features together
         all_pos = []
         all_q = []
         all_names = []
-        all_wavs = []
         assert len(motions) == len(features)
-        for motion, feature, wav in zip(motions, features, wavs):
+        for motion, feature in zip(motions, features):
             # make sure name is matching
             m_name = os.path.splitext(os.path.basename(motion))[0]
             f_name = os.path.splitext(os.path.basename(feature))[0]
-            w_name = os.path.splitext(os.path.basename(wav))[0]
-            assert m_name == f_name == w_name, str((motion, feature, wav))
+            assert m_name == f_name, str((motion, feature))
             # load motion
             data = pickle.load(open(motion, "rb"))
             pos = data["pos"]
@@ -128,7 +123,6 @@ class AISTPPDataset(Dataset):
             all_pos.append(pos)
             all_q.append(q)
             all_names.append(feature)
-            all_wavs.append(wav)
 
         all_pos = np.array(all_pos)  # N x seq x 3
         all_q = np.array(all_q)  # N x seq x (joint * 3)
@@ -136,7 +130,7 @@ class AISTPPDataset(Dataset):
         print(all_pos.shape)
         all_pos = all_pos[:, :: self.data_stride, :]
         all_q = all_q[:, :: self.data_stride, :]
-        data = {"pos": all_pos, "q": all_q, "filenames": all_names, "wavs": all_wavs}
+        data = {"pos": all_pos, "q": all_q, "filenames": all_names}
         return data
 
     def process_dataset(self, root_pos, local_q):
@@ -149,24 +143,25 @@ class AISTPPDataset(Dataset):
         bs, sq, c = local_q.shape
         local_q = local_q.reshape((bs, sq, -1, 3))
 
-        # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
-        root_q = local_q[:, :, :1, :]  # sequence x 1 x 3
-        root_q_quat = axis_angle_to_quaternion(root_q)
-        rotation = torch.Tensor(
-            [0.7071068, 0.7071068, 0, 0]
-        )  # 90 degrees about the x axis
-        root_q_quat = quaternion_multiply(rotation, root_q_quat)
-        root_q = quaternion_to_axis_angle(root_q_quat)
-        local_q[:, :, :1, :] = root_q
+        if self.train:
+            # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
+            root_q = local_q[:, :, :1, :]  # sequence x 1 x 3
+            root_q_quat = axis_angle_to_quaternion(root_q)
+            rotation = torch.Tensor(
+                [0.7071068, 0.7071068, 0, 0]
+            )  # 90 degrees about the x axis
+            root_q_quat = quaternion_multiply(rotation, root_q_quat)
+            root_q = quaternion_to_axis_angle(root_q_quat)
+            local_q[:, :, :1, :] = root_q
 
-        # don't forget to rotate the root position too 😩
-        pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
-        root_pos = pos_rotation.transform_points(
-            root_pos
-        )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
+            # don't forget to rotate the root position too 😩
+            pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
+            root_pos = pos_rotation.transform_points(
+                root_pos
+            )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
 
         # do FK
-        positions = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
+        positions, _ = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3. Second element is rotation
         feet = positions[:, :, (7, 8, 10, 11)]
         feetv = torch.zeros(feet.shape[:3])
         feetv[:, :-1] = (feet[:, 1:] - feet[:, :-1]).norm(dim=-1)
@@ -253,7 +248,7 @@ class OrderedMusicDataset(Dataset):
         # now we have a batch of filenames
         filenames = [os.path.join(self.music_path, x + ".npy") for x in seq_slice]
         # get the features
-        features = np.array([np.load(x) for x in filenames])
+        features = np.array([np.load(x, allow_pickle=True) for x in filenames])
 
         return torch.Tensor(features), seq_slice
 

@@ -6,7 +6,7 @@ from pathlib import Path
 
 import torch
 import torch.nn.functional as F
-import wandb
+
 from accelerate import Accelerator, DistributedDataParallelKwargs
 from accelerate.state import AcceleratorState
 from torch.utils.data import DataLoader
@@ -23,10 +23,8 @@ from vis import SMPLSkeleton
 def wrap(x):
     return {f"module.{key}": value for key, value in x.items()}
 
-
 def maybe_wrap(x, num):
     return x if num == 1 else wrap(x)
-
 
 class EDGE:
     def __init__(
@@ -42,15 +40,14 @@ class EDGE:
         self.accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
         state = AcceleratorState()
         num_processes = state.num_processes
-        use_baseline_feats = feature_type == "baseline"
 
         pos_dim = 3
         rot_dim = 24 * 6  # 24 joints, 6dof
         self.repr_dim = repr_dim = pos_dim + rot_dim + 4
 
-        feature_dim = 35 if use_baseline_feats else 4800
+        feature_dim = 147
 
-        horizon_seconds = 5
+        horizon_seconds = 10
         FPS = 30
         self.horizon = horizon = horizon_seconds * FPS
 
@@ -174,6 +171,7 @@ class EDGE:
         )
 
         train_data_loader = self.accelerator.prepare(train_data_loader)
+
         # boot up multi-gpu training. test dataloader is only on main process
         load_loop = (
             partial(tqdm, position=1, desc="Batch")
@@ -183,7 +181,6 @@ class EDGE:
         if self.accelerator.is_main_process:
             save_dir = str(increment_path(Path(opt.project) / opt.exp_name))
             opt.exp_name = save_dir.split("/")[-1]
-            wandb.init(project=opt.wandb_pj_name, name=opt.exp_name)
             save_dir = Path(save_dir)
             wdir = save_dir / "weights"
             wdir.mkdir(parents=True, exist_ok=True)
@@ -196,7 +193,7 @@ class EDGE:
             avg_footloss = 0
             # train
             self.train()
-            for step, (x, cond, filename, wavnames) in enumerate(
+            for step, (x, cond, filename) in enumerate(
                 load_loop(train_data_loader)
             ):
                 total_loss, (loss, v_loss, fk_loss, foot_loss) = self.diffusion(
@@ -235,7 +232,6 @@ class EDGE:
                         "FK Loss": avg_fkloss,
                         "Foot Loss": avg_footloss,
                     }
-                    wandb.log(log_dict)
                     ckpt = {
                         "ema_state_dict": self.diffusion.master_model.state_dict(),
                         "model_state_dict": self.accelerator.unwrap_model(
@@ -250,7 +246,7 @@ class EDGE:
                     shape = (render_count, self.horizon, self.repr_dim)
                     print("Generating Sample")
                     # draw a music from the test dataset
-                    (x, cond, filename, wavnames) = next(iter(test_data_loader))
+                    (x, cond, filename) = next(iter(test_data_loader))
                     cond = cond.to(self.accelerator.device)
                     self.diffusion.render_sample(
                         shape,
@@ -258,17 +254,17 @@ class EDGE:
                         self.normalizer,
                         epoch,
                         os.path.join(opt.render_dir, "train_" + opt.exp_name),
-                        name=wavnames[:render_count],
+                        name=filename,
                         sound=True,
                     )
                     print(f"[MODEL SAVED at Epoch {epoch}]")
         if self.accelerator.is_main_process:
-            wandb.run.finish()
+            pass
 
     def render_sample(
         self, data_tuple, label, render_dir, render_count=-1, fk_out=None, render=True
     ):
-        _, cond, wavname = data_tuple
+        _, cond = data_tuple
         assert len(cond.shape) == 3
         if render_count < 0:
             render_count = len(cond)
@@ -280,7 +276,7 @@ class EDGE:
             self.normalizer,
             label,
             render_dir,
-            name=wavname[:render_count],
+            name="test",
             sound=True,
             mode="long",
             fk_out=fk_out,

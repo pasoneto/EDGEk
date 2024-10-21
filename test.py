@@ -38,70 +38,26 @@ stringintkey = cmp_to_key(stringintcmp_)
 
 
 def test(opt):
-    feature_func = juke_extract if opt.feature_type == "jukebox" else baseline_extract
     sample_length = opt.out_length
     sample_size = int(sample_length / 2.5) - 1
 
     temp_dir_list = []
     all_cond = []
     all_filenames = []
-    if opt.use_cached_features:
-        print("Using precomputed features")
-        # all subdirectories
-        dir_list = glob.glob(os.path.join(opt.feature_cache_dir, "*/"))
-        for dir in dir_list:
-            file_list = sorted(glob.glob(f"{dir}/*.wav"), key=stringintkey)
-            juke_file_list = sorted(glob.glob(f"{dir}/*.npy"), key=stringintkey)
-            assert len(file_list) == len(juke_file_list)
-            # random chunk after sanity check
-            rand_idx = random.randint(0, len(file_list) - sample_size)
-            file_list = file_list[rand_idx : rand_idx + sample_size]
-            juke_file_list = juke_file_list[rand_idx : rand_idx + sample_size]
-            cond_list = [np.load(x) for x in juke_file_list]
-            all_filenames.append(file_list)
-            all_cond.append(torch.from_numpy(np.array(cond_list)))
-    else:
-        print("Computing features for input music")
-        for wav_file in glob.glob(os.path.join(opt.music_dir, "*.wav")):
-            # create temp folder (or use the cache folder if specified)
-            if opt.cache_features:
-                songname = os.path.splitext(os.path.basename(wav_file))[0]
-                save_dir = os.path.join(opt.feature_cache_dir, songname)
-                Path(save_dir).mkdir(parents=True, exist_ok=True)
-                dirname = save_dir
-            else:
-                temp_dir = TemporaryDirectory()
-                temp_dir_list.append(temp_dir)
-                dirname = temp_dir.name
-            # slice the audio file
-            print(f"Slicing {wav_file}")
-            slice_audio(wav_file, 2.5, 5.0, dirname)
-            file_list = sorted(glob.glob(f"{dirname}/*.wav"), key=stringintkey)
-            # randomly sample a chunk of length at most sample_size
-            rand_idx = random.randint(0, len(file_list) - sample_size)
-            cond_list = []
-            # generate juke representations
-            print(f"Computing features for {wav_file}")
-            for idx, file in enumerate(tqdm(file_list)):
-                # if not caching then only calculate for the interested range
-                if (not opt.cache_features) and (not (rand_idx <= idx < rand_idx + sample_size)):
-                    continue
-                # audio = jukemirlib.load_audio(file)
-                # reps = jukemirlib.extract(
-                #     audio, layers=[66], downsample_target_rate=30
-                # )[66]
-                reps, _ = feature_func(file)
-                # save reps
-                if opt.cache_features:
-                    featurename = os.path.splitext(file)[0] + ".npy"
-                    np.save(featurename, reps)
-                # if in the random range, put it into the list of reps we want
-                # to actually use for generation
-                if rand_idx <= idx < rand_idx + sample_size:
-                    cond_list.append(reps)
-            cond_list = torch.from_numpy(np.array(cond_list))
-            all_cond.append(cond_list)
-            all_filenames.append(file_list[rand_idx : rand_idx + sample_size])
+    print("Using precomputed features")
+    # all subdirectories
+    dir_list = glob.glob(os.path.join(opt.feature_cache_dir, "*/"))
+    for dir in dir_list:
+        file_list = sorted(glob.glob(f"{dir}/*.pkl"), key=stringintkey)
+        accel_features = sorted(glob.glob(f"{dir}/*.pkl"), key=stringintkey)
+        assert len(file_list) == len(accel_features)
+        # random chunk after sanity check
+        rand_idx = random.randint(0, len(file_list) - sample_size)
+        file_list = file_list[rand_idx : rand_idx + sample_size]
+        accel_features = accel_features[rand_idx : rand_idx + sample_size]
+        cond_list = [np.load(x) for x in accel_features]
+        all_filenames.append(file_list)
+        all_cond.append(torch.from_numpy(np.array(cond_list)))
 
     model = EDGE(opt.feature_type, opt.checkpoint)
     model.eval()
