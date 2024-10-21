@@ -674,7 +674,8 @@ class GaussianDiffusion(nn.Module):
                 )
             return
 
-        poses, _ = self.smpl.forward(q, pos).detach().cpu().numpy()
+        poses, _ = self.smpl.forward(q, pos)
+        poses = poses.detach().cpu().numpy()
         sample_contact = (
             sample_contact.detach().cpu().numpy()
             if sample_contact is not None
