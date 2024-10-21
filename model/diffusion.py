@@ -488,8 +488,8 @@ class GaussianDiffusion(nn.Module):
         target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
 
         # perform FK
-        model_xp = self.smpl.forward(model_q, model_x)
-        target_xp = self.smpl.forward(target_q, target_x)
+        model_xp, _ = self.smpl.forward(model_q, model_x)
+        target_xp, _ = self.smpl.forward(target_q, target_x)
 
         fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
         fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
