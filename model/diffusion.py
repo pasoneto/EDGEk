@@ -646,8 +646,9 @@ class GaussianDiffusion(nn.Module):
             else:
                 full_pos = pos
                 full_q = q
+            current_pred, _ = self.smpl.forward(full_q, full_pos)
             full_pose = (
-                self.smpl.forward(full_q, full_pos).detach().cpu().numpy()
+                current_pred.detach().cpu().numpy()
             )  # b, s, 24, 3
             # squeeze the batch dimension away and render
             skeleton_render(
