@@ -361,7 +361,7 @@ def visu(positions, sr):
 
     plt.show()
 
-f = "/Users/pdealcan/Downloads/2_1_StefanosKoullapis_Bachata_v2_C3D_poses_slice6.pkl"
-a = np.load(f, allow_pickle=True)
+#f = "/Users/pdealcan/Downloads/2_1_StefanosKoullapis_Bachata_v2_C3D_poses_slice6.pkl"
+#a = np.load(f, allow_pickle=True)
 
-visu(a['full_pose'], 30)
+#visu(a['full_pose'], 30)
