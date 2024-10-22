@@ -263,7 +263,7 @@ class EDGE:
     
     #This render sample is only used when in test.py script
     def render_sample(
-        self, data_tuple, label, render_dir, render_count=-1, fk_out="./", render=True
+        self, data_tuple, label, render_dir, render_count=-1, fk_out="./generated_dances", render=True
     ):
         _, cond = data_tuple
         assert len(cond.shape) == 3
