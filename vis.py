@@ -164,7 +164,7 @@ def skeleton_render(
     epoch=0,
     out="renders",
     name="",
-    sound=True,
+    sound=False,
     stitch=False,
     sound_folder="ood_sliced",
     contact=None,
@@ -213,44 +213,6 @@ def skeleton_render(
             fargs=(poses, lines, ax, axrange, scat, contact),
             interval=1000 // 30,
         )
-    if sound:
-        # make a temporary directory to save the intermediate gif in
-        if render:
-            temp_dir = TemporaryDirectory()
-            gifname = os.path.join(temp_dir.name, f"{epoch}.gif")
-            anim.save(gifname)
-
-        # stitch wavs
-        if stitch:
-            assert type(name) == list  # must be a list of names to do stitching
-            name_ = [os.path.splitext(x)[0] + ".wav" for x in name]
-            audio, sr = lr.load(name_[0], sr=None)
-            ll, half = len(audio), len(audio) // 2
-            total_wav = np.zeros(ll + half * (len(name_) - 1))
-            total_wav[:ll] = audio
-            idx = ll
-            for n_ in name_[1:]:
-                audio, sr = lr.load(n_, sr=None)
-                total_wav[idx : idx + half] = audio[half:]
-                idx += half
-            # save a dummy spliced audio
-            audioname = f"{temp_dir.name}/tempsound.wav" if render else os.path.join(out, f'{epoch}_{"_".join(os.path.splitext(os.path.basename(name[0]))[0].split("_")[:-1])}.wav')
-            sf.write(audioname, total_wav, sr)
-            outname = os.path.join(
-                out,
-                f'{epoch}_{"_".join(os.path.splitext(os.path.basename(name[0]))[0].split("_")[:-1])}.mp4',
-            )
-        else:
-            assert type(name) == str
-            assert name != "", "Must provide an audio filename"
-            audioname = name
-            outname = os.path.join(
-                out, f"{epoch}_{os.path.splitext(os.path.basename(name))[0]}.mp4"
-            )
-        if render:
-            out = os.system(
-                f"ffmpeg -loglevel error -stream_loop 0 -y -i {gifname} -i {audioname} -shortest -c:v libx264 -crf 26 -c:a aac -q:a 4 {outname}"
-            )
     else:
         if render:
             # actually save the gif

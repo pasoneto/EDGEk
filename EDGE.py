@@ -255,14 +255,15 @@ class EDGE:
                         epoch,
                         os.path.join(opt.render_dir, "train_" + opt.exp_name),
                         name=filename,
-                        sound=True,
+                        sound=False,
                     )
                     print(f"[MODEL SAVED at Epoch {epoch}]")
         if self.accelerator.is_main_process:
             pass
-
+    
+    #This render sample is only used when in test.py script
     def render_sample(
-        self, data_tuple, label, render_dir, render_count=-1, fk_out=None, render=True
+        self, data_tuple, label, render_dir, render_count=-1, fk_out="./", render=True
     ):
         _, cond = data_tuple
         assert len(cond.shape) == 3
@@ -276,7 +277,7 @@ class EDGE:
             self.normalizer,
             label,
             render_dir,
-            name="test",
+            name=["test"],
             sound=True,
             mode="long",
             fk_out=fk_out,

@@ -546,7 +546,7 @@ class GaussianDiffusion(nn.Module):
         normalizer,
         epoch,
         render_out,
-        fk_out=None,
+        fk_out="./",
         name=None,
         sound=True,
         mode="normal",
