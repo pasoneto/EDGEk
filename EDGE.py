@@ -240,7 +240,7 @@ class EDGE:
                         "optimizer_state_dict": self.optim.state_dict(),
                         "normalizer": self.normalizer,
                     }
-                    torch.save(ckpt, os.path.join(wdir, f"train-{epoch}.pt"))
+                    torch.save(ckpt, "./weights/train-redo-{epoch}.pt")
                     # generate a sample
                     render_count = 2
                     shape = (render_count, self.horizon, self.repr_dim)
