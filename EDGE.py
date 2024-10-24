@@ -19,6 +19,7 @@ from model.diffusion import GaussianDiffusion
 from model.model import DanceDecoder
 from vis import SMPLSkeleton
 
+import json
 
 def wrap(x):
     return {f"module.{key}": value for key, value in x.items()}
@@ -240,7 +241,11 @@ class EDGE:
                         "optimizer_state_dict": self.optim.state_dict(),
                         "normalizer": self.normalizer,
                     }
+
+                    with open(f"./loss/loss-redo-{epoch}.txt", "w") as fp:
+                        json.dump(log_dict, fp) 
                     torch.save(ckpt, f"./weights/train-redo-{epoch}.pt")
+
                     # generate a sample
                     render_count = 2
                     shape = (render_count, self.horizon, self.repr_dim)
