@@ -1,6 +1,6 @@
 import sys
 
-sys.path.insert(1, '/Users/pdealcan/Documents/github/edge_redo//EDGEk/')
+sys.path.insert(1, '/Users/pdealcan/Documents/github/edge_redo/EDGEk/')
 
 import numpy as np
 import torch
@@ -191,7 +191,7 @@ def accel_extract(motion_file_sliced, output_feats):
     file_name = os.path.splitext(os.path.basename(motion_file_sliced))[0]
     motion = dict(np.load(motion_file_sliced, allow_pickle=True))
     pos, q, _ = motion["pos"], motion["q"], 1 #q: 3, pos: 24
-    pos = center_mean(q)
+    q = center_mean(q)
     positions, rotations = smplToPosition(q, pos, 1, aist = True)
     IMUs = extractIMUs(positions[0])
     accel_sliced = differentiate_fast(IMUs, 2, sr = 30) #right thigh, left wrist
