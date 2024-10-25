@@ -41,7 +41,7 @@ def test(opt):
     all_filenames = []
     print("Using precomputed features")
     # all subdirectories
-    dir_list = ["/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/features/"]
+    dir_list = ["./data/test/features/"]
     for d in dir_list:
         file_list = sorted(glob.glob(f"{d}/*.pkl"), key=stringintkey)
         juke_file_list = sorted(glob.glob(f"{d}/*.pkl"), key=stringintkey)
@@ -54,7 +54,7 @@ def test(opt):
         all_filenames.append(file_list)
         all_cond.append(torch.from_numpy(np.array(cond_list)))
     
-    directory_weight = "/Users/pdealcan/Downloads/train-redo-12000.pt"
+    directory_weight = "./weights/train-redo-12000.pt"
     model = EDGE(opt.feature_type, directory_weight)
     model.eval()
 
