@@ -57,7 +57,7 @@ def test(opt):
         all_filenames.append(file_list)
         all_cond.append(torch.from_numpy(np.array(cond_list)))
     
-    directory_weight = "/Users/pdealcan/Downloads/train-redo-5000.pt"
+    directory_weight = "/Users/pdealcan/Downloads/train-redo-12000.pt"
     model = EDGE(opt.feature_type, directory_weight)
     model.eval()
 
