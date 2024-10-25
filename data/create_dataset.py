@@ -1,37 +1,31 @@
-import os
-from pathlib import Path
+import argparse
 
 from accel_extraction_funcs import *
 
 from filter_split_data import *
 from slice import *
 
-def create_dataset():
-    slice_amass("../../../data/CoE/accel/amass/amass_full/DanceDB/", "../data/test/motions_sliced/")
+def create_dataset(type_feature, marker1 = None, marker2 = None, position_out = False):
+    
+    if type_feature == "position" and (marker1 == None or marker2 == None): 
+        raise ValueError("Specify marker numbers")
+
+    slice_amass("../../../data/CoE/accel/amass/amass_full/DanceDB/", "../data/test/motions_sliced/", position_out=position_out)
     print("Finished test dataset")
-    slice_aist("../../../EDGEk/data/raw/edge_aistpp/motions/", "../data/train/motions_sliced/")
+    slice_aist("../../../EDGEk/data/raw/edge_aistpp/motions/", "../data/train/motions_sliced/", position_out = position_out)
     print("Finished train dataset")
 
     #process dataset to extract accel features
-    print("Extracting accelerometer features train")
-    extract_features("../data/train/motions_sliced/", "../data/train/features/")
+    print(f"Extracting {type_feature} features train")
+    extract_features("../data/train/motions_sliced/", "../data/train/features/", type_feature, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = True)
+    print(f"Extracting {type_feature} features test")
+    extract_features("../data/test/motions_sliced/", "../data/test/features/", type_feature, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = False)
 
-    print("Extracting accelerometer features test")
-    extract_features("../data/test/motions_sliced/", "../data/test/features/")
+parser = argparse.ArgumentParser()
+parser.add_argument("--type_feature", default="accelerometer")
+parser.add_argument("--marker1", default=None)
+parser.add_argument("--marker2", default=None)
+parser.add_argument("--position_out", default=False)
 
-#parser = argparse.ArgumentParser()
-#parser.add_argument("--stride", type=float, default=0.5)
-#parser.add_argument("--length", type=float, default=5.0, help="checkpoint")
-#parser.add_argument(
-#    "--dataset_folder",
-#    type=str,
-#    default="edge_aistpp",
-#    help="folder containing motions and music",
-#)
-#parser.add_argument("--extract-baseline", action="store_true")
-#parser.add_argument("--extract-jukebox", action="store_true")
-#parser.add_argument("--extract-accel", action="store_true")
-#opt = parser.parse_args()
-#return opt
-
-create_dataset()
+opt = parser.parse_args()
+create_dataset(type_feature = opt.type_feature, marker1 = opt.marker1, marker2 = opt.marker2, position_out = opt.position_out)

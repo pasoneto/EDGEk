@@ -11,7 +11,6 @@ import torch
 from tqdm import tqdm
 
 from args import parse_test_opt
-from data.slice import slice_audio
 from EDGE import EDGE
 from data.audio_extraction.baseline_features import extract as baseline_extract
 from data.audio_extraction.jukebox_features import extract as juke_extract
@@ -36,7 +35,6 @@ def stringintcmp_(a, b):
 
 stringintkey = cmp_to_key(stringintcmp_)
 
-
 def test(opt):
     sample_length = opt.out_length
     sample_size = int(sample_length / 2.5) - 1
@@ -46,32 +44,30 @@ def test(opt):
     all_filenames = []
     print("Using precomputed features")
     # all subdirectories
-    dir_list = glob.glob(os.path.join(opt.feature_cache_dir, "*/"))
-    for dir in dir_list:
-        file_list = sorted(glob.glob(f"{dir}/*.pkl"), key=stringintkey)
-        accel_features = sorted(glob.glob(f"{dir}/*.pkl"), key=stringintkey)
-        assert len(file_list) == len(accel_features)
+    dir_list = ["/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/features/"]
+    for d in dir_list:
+        file_list = sorted(glob.glob(f"{d}/*.pkl"), key=stringintkey)
+        juke_file_list = sorted(glob.glob(f"{d}/*.pkl"), key=stringintkey)
+        assert len(file_list) == len(juke_file_list)
         # random chunk after sanity check
         rand_idx = random.randint(0, len(file_list) - sample_size)
         file_list = file_list[rand_idx : rand_idx + sample_size]
-        accel_features = accel_features[rand_idx : rand_idx + sample_size]
-        cond_list = [np.load(x) for x in accel_features]
+        juke_file_list = juke_file_list[rand_idx : rand_idx + sample_size]
+        cond_list = [np.load(x, allow_pickle=True) for x in juke_file_list]
         all_filenames.append(file_list)
         all_cond.append(torch.from_numpy(np.array(cond_list)))
-
-    model = EDGE(opt.feature_type, opt.checkpoint)
+    
+    directory_weight = "/Users/pdealcan/Downloads/train-redo-5000.pt"
+    model = EDGE(opt.feature_type, directory_weight)
     model.eval()
 
     # directory for optionally saving the dances for eval
-    fk_out = None
-    if opt.save_motions:
-        fk_out = opt.motion_save_dir
-
+    fk_out = "./generated_dances/"
     print("Generating dances")
     for i in range(len(all_cond)):
         data_tuple = None, all_cond[i], all_filenames[i]
         model.render_sample(
-            data_tuple, "test", opt.render_dir, render_count=-1, fk_out=fk_out, render=not opt.no_render
+            data_tuple, "test", opt.render_dir, render_count=-1, fk_out=fk_out, render=True
         )
     print("Done")
     torch.cuda.empty_cache()

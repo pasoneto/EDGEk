@@ -13,7 +13,7 @@ from dataset.dance_dataset import *
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
 
-from vis import SMPLSkeleton, visu
+from vis import SMPLSkeleton, visu, smplToPosition
 from dataset.quaternion import ax_from_6v, quat_slerp
 
 from scipy.signal import butter, filtfilt
@@ -40,38 +40,6 @@ def center_mean(df):
     df = translate(df, [-x, -y, -z]);
     return(df)
 
-def smplToPosition(q, pos, scale, aist = True):
-    smpl = SMPLSkeleton()
-    # to Tensor
-    pos /= scale #Normalize by scale
-    root_pos = torch.Tensor(np.array([pos]))
-    local_q = torch.Tensor(np.array([q]))
-    # to ax
-    bs, sq, c = local_q.shape
-    local_q = local_q.reshape((bs, sq, -1, 3))
-    if aist:
-        # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
-        root_q = local_q[:, :, :1, :]  # sequence x 1 x 3 #Extracting the root axis angles
-        root_q_quat = axis_angle_to_quaternion(root_q) #Converting to quaternions
-        rotation = torch.Tensor(
-            [0.7071068, 0.7071068, 0, 0]
-        )  # 90 degrees about the x axis
-        root_q_quat = quaternion_multiply(rotation, root_q_quat)
-        root_q = quaternion_to_axis_angle(root_q_quat) #Back to quaternions
-        local_q[:, :, :1, :] = root_q #Assign new rotated root
-       # don't forget to rotate the root position too 😩
-        pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
-        root_pos = pos_rotation.transform_points(
-            root_pos
-        )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
-    # do FK
-    # local_q: axis angle rotations for local rotation of each joint 
-    # root_pos: root-joint positions
-
-    positions, rotations = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
-    rotations = torch.stack(rotations).permute(1, 2, 0, 3) #Reorder global joint rotations
-
-    return positions, rotations
 
 def create_middle_marker(positions, indices):
     r"""
@@ -92,6 +60,12 @@ def extractIMUs(positions):
     watch = positions[:, watch, :].reshape(-1, 3)
     IMUs = torch.cat([phone, watch], dim = 1)
     return IMUs
+
+def extract2Markers(positions, marker1, marker2):
+    marker1 = positions[:, marker1, :].reshape(-1, 3)
+    marker2 = positions[:, marker2, :].reshape(-1, 3)
+    markers = torch.cat([marker1, marker2], dim = 1)
+    return markers
 
 def differentiate_fast(d, order, sr):
     cutoff = .2;
@@ -187,23 +161,39 @@ def extractFeats(acceleration_data, windowLength):
 
     return allFeatures
 
-def accel_extract(motion_file_sliced, output_feats):
+def feat_extract(motion_file_sliced, output_feats, feature_type = "accelerometer", marker1 = None, marker2 = None, position_out = False, aist = True):
     file_name = os.path.splitext(os.path.basename(motion_file_sliced))[0]
-    motion = dict(np.load(motion_file_sliced, allow_pickle=True))
-    pos, q, _ = motion["pos"], motion["q"], 1 #q: 3, pos: 24
-    q = center_mean(q)
-    positions, rotations = smplToPosition(q, pos, 1, aist = True)
-    IMUs = extractIMUs(positions[0])
-    accel_sliced = differentiate_fast(IMUs, 2, sr = 30) #right thigh, left wrist
-    accel_sliced = extractFeats(accel_sliced, accel_sliced.shape[0])
-    accel_sliced = np.float32(accel_sliced)
-    pickle.dump(accel_sliced, open(f"{output_feats}/{file_name}.pkl", "wb"))
+
+    if position_out == False:
+        motion = dict(np.load(motion_file_sliced, allow_pickle=True))
+    else:
+        motion = np.load(motion_file_sliced, allow_pickle=True)
+
+    if position_out == False:
+        pos, q, _ = motion["pos"], motion["q"], 1 #q: 3, pos: 24
+        positions, _ = smplToPosition(q, pos, 1, aist = aist)
+        positions = positions[0]
+    else:
+        positions = motion
+
+    if feature_type == "accelerometer":
+        IMUs = extractIMUs(positions)
+        motion_sliced = differentiate_fast(IMUs, 2, sr = 30) #right thigh, left wrist
+    elif feature_type == "positions":
+        motion_sliced = extract2Markers(positions, marker1 = [marker1], marker2 = [marker2])
+    else:
+        raise Exception("Feature type not recognized")
+
+    motion_sliced = extractFeats(motion_sliced, motion_sliced.shape[0])
+    motion_sliced = np.float32(motion_sliced)
+    pickle.dump(motion_sliced, open(f"{output_feats}/{file_name}.pkl", "wb"))
+
     return None
 
-def extract_features(input_sliced, output_feats):
+def extract_features(input_sliced, output_feats, feature_type = "accelerometer", marker1 = None, marker2 = None, position_out = False, aist = True):
     files = os.listdir(input_sliced)
     for file in tqdm(files):
-        accel_extract(f"{input_sliced}{file}", output_feats)
+        feat_extract(f"{input_sliced}{file}", output_feats, feature_type = feature_type, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = aist)
     return None
 
 

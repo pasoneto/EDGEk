@@ -57,7 +57,8 @@ class EDGE:
         checkpoint = None
         if checkpoint_path != "":
             checkpoint = torch.load(
-                checkpoint_path, map_location=self.accelerator.device
+#                checkpoint_path, map_location=self.accelerator.device
+                checkpoint_path, map_location=torch.device('cpu')
             )
             self.normalizer = checkpoint["normalizer"]
 
@@ -270,7 +271,7 @@ class EDGE:
     def render_sample(
         self, data_tuple, label, render_dir, render_count=-1, fk_out="./generated_dances", render=True
     ):
-        _, cond = data_tuple
+        _, cond, file_names = data_tuple
         assert len(cond.shape) == 3
         if render_count < 0:
             render_count = len(cond)
@@ -282,9 +283,9 @@ class EDGE:
             self.normalizer,
             label,
             render_dir,
-            name=["test"],
+            name=file_names,
             sound=True,
-            mode="long",
+            mode="normal",
             fk_out=fk_out,
             render=render
         )

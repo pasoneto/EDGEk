@@ -4,6 +4,10 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 
+from accel_extraction_funcs import center_mean
+
+from vis import smplToPosition
+
 def resample(q, pos, scale, sr):
     newFreq = 30 #Determine sampling rate stride
     data_stride = int(sr //newFreq)
@@ -16,11 +20,12 @@ def resample(q, pos, scale, sr):
     
     return q, pos
 
-def slice_motion(motion_file, out_dir, aist):
+def slice_motion(motion_file, out_dir, aist, position_out):
     file_name = os.path.splitext(os.path.basename(motion_file))[0]
     if aist == False:
         motion = dict(np.load(motion_file))
         pos, q, scale = motion["trans"], motion["poses"], 1 #Maybe the inverse?
+        pos = center_mean(pos)
         sr = motion['mocap_framerate'] 
         #Removing additional info that comes with amass (?)
         q = q.reshape((q.shape[0], -1, 3))
@@ -29,6 +34,7 @@ def slice_motion(motion_file, out_dir, aist):
     else:
         motion = dict(np.load(f"{motion_file}", allow_pickle=True))
         pos, q, scale = motion['smpl_trans'], motion['smpl_poses'], motion['smpl_scaling']
+        pos = center_mean(pos)
         sr = 60
 
     #Resampling
@@ -47,9 +53,12 @@ def slice_motion(motion_file, out_dir, aist):
         pos_slice = np.float32(pos_slice)
         q_slice = np.float32(q_slice)
         out = {"pos": pos_slice, "q": q_slice}
+        if position_out:
+            out, _ = smplToPosition(q_slice, pos_slice, 1, aist = aist)
+            out = out[0]
         pickle.dump(out, open(f"{out_dir}/{file_name}_slice{i}.pkl", "wb"))
 
-def slice_amass(file_dir, out_dir):
+def slice_amass(file_dir, out_dir, position_out):
     folders = os.listdir(f"{file_dir}")
     substrings = ["shape", 'Angry', 'Curiosity', 'Happy', 'Nervous', 'Sad', 'Scary', 'Excited', 'Annoyed', 'Bored', 'Miserable', 'Mix', 'Pleased', 'Relaxed', 'Satisfied', 'Tired', 'Afraid', 'Neutral']
     amass_files = [
@@ -60,12 +69,12 @@ def slice_amass(file_dir, out_dir):
         if (file.endswith(".npz") or file.endswith(".npz")) and not any(sub in file for sub in substrings)
     ]
     for file in tqdm(amass_files):
-        slice_motion(file, out_dir, aist = False)
+        slice_motion(file, out_dir, aist = False, position_out = position_out)
 
-def slice_aist(file_dir, out_dir):
+def slice_aist(file_dir, out_dir, position_out):
     ignore_list = pd.read_csv("../../../EDGEk/data/splits/ignore_list.txt")['files_ignore'].to_list()
     all_files = [os.path.join(file_dir, f) for f in os.listdir(file_dir) if f.endswith('.pkl')]
     aist_files = [f for f in all_files if not any(ignored in f for ignored in ignore_list)]
     for file in tqdm(aist_files):
-        slice_motion(file, out_dir, aist = True)
+        slice_motion(file, out_dir, aist = True, position_out = position_out)
 

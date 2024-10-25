@@ -12,6 +12,10 @@ from matplotlib import cm
 from matplotlib.colors import ListedColormap
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply)
+
+from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
+                                  quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
+
 from tqdm import tqdm
 
 smpl_joints = [
@@ -296,6 +300,40 @@ class SMPLSkeleton:
 
         return torch.stack(positions_world, dim=3).permute(0, 1, 3, 2), rotations_world
 
+def smplToPosition(q, pos, scale, aist = True):
+    smpl = SMPLSkeleton()
+    # to Tensor
+    pos /= scale #Normalize by scale
+    root_pos = torch.Tensor(np.array([pos]))
+    local_q = torch.Tensor(np.array([q]))
+    # to ax
+    bs, sq, c = local_q.shape
+    local_q = local_q.reshape((bs, sq, -1, 3))
+    if aist:
+        # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
+        root_q = local_q[:, :, :1, :]  # sequence x 1 x 3 #Extracting the root axis angles
+        root_q_quat = axis_angle_to_quaternion(root_q) #Converting to quaternions
+        rotation = torch.Tensor(
+            [0.7071068, 0.7071068, 0, 0]
+        )  # 90 degrees about the x axis
+        root_q_quat = quaternion_multiply(rotation, root_q_quat)
+        root_q = quaternion_to_axis_angle(root_q_quat) #Back to quaternions
+        local_q[:, :, :1, :] = root_q #Assign new rotated root
+       # don't forget to rotate the root position too 😩
+        pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
+        root_pos = pos_rotation.transform_points(
+            root_pos
+        )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
+    # do FK
+    # local_q: axis angle rotations for local rotation of each joint 
+    # root_pos: root-joint positions
+
+    positions, rotations = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
+    rotations = torch.stack(rotations).permute(1, 2, 0, 3) #Reorder global joint rotations
+
+    return positions, rotations
+
+
 def visu(positions, sr):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -361,7 +399,11 @@ def visu(positions, sr):
 
     plt.show()
 
-f = "/Users/pdealcan/Downloads/2000_0_Clio_Haniotikos_C3D_poses_slice1.pkl"
-a = np.load(f, allow_pickle=True)
-
-visu(a['full_pose'], 30)
+#f = "/Users/pdealcan/Downloads/12000_0_AnnaCortesi_BellyDance2_C3D_poses_slice22.pkl"
+#a = np.load(f, allow_pickle=True)
+#visu(a['full_pose'], 30)
+#f = "./data/train/motions_sliced/gBR_sBM_cAll_d04_mBR1_ch02_slice0.pkl"
+#a = np.load(f, allow_pickle=True)
+#positions, _ = smplToPosition(a['q'], a['pos'], 1, aist = True)
+#positions = positions[0]
+#visu(positions, 30)
