@@ -402,8 +402,9 @@ def visu(positions, sr):
 #f = "/Users/pdealcan/Downloads/12000_0_AnnaCortesi_BellyDance2_C3D_poses_slice22.pkl"
 #a = np.load(f, allow_pickle=True)
 #visu(a['full_pose'], 30)
-#f = "./data/train/motions_sliced/gBR_sBM_cAll_d04_mBR1_ch02_slice0.pkl"
-#a = np.load(f, allow_pickle=True)
+f = "/Users/pdealcan/Downloads/a.pkl"
+a = np.load(f, allow_pickle=True)
+#[print(b) for b in a]
 #positions, _ = smplToPosition(a['q'], a['pos'], 1, aist = True)
-#positions = positions[0]
-#visu(positions, 30)
+positions = a['full_pose']
+visu(positions, 30)
