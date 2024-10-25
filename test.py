@@ -5,15 +5,12 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 import random
 
-import jukemirlib
 import numpy as np
 import torch
 from tqdm import tqdm
 
 from args import parse_test_opt
 from EDGE import EDGE
-from data.audio_extraction.baseline_features import extract as baseline_extract
-from data.audio_extraction.jukebox_features import extract as juke_extract
 
 # sort filenames that look like songname_slice{number}.ext
 key_func = lambda x: int(os.path.splitext(x)[0].split("_")[-1].split("slice")[-1])
