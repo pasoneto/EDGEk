@@ -402,10 +402,10 @@ def visu(positions, sr):
 #f = "/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/motions_sliced/CLIO_Zorbas_poses_slice14.pkl"
 #a = np.load(f, allow_pickle=True)
 #visu(a['full_pose'], 30)
-f = "/Users/pdealcan/Downloads/6900_0_ANDREAS_Tsesto_Zonaradiko_poses_slice7.pkl"
-a = np.load(f, allow_pickle=True)
+#f = "/Users/pdealcan/Downloads/6900_0_ANDREAS_Tsesto_Zonaradiko_poses_slice7.pkl"
+#a = np.load(f, allow_pickle=True)
 #[print(b) for b in a]
 #positions, _ = smplToPosition(a['q'], a['pos'], 1, aist = False)
 #positions = positions[0]
-positions = a['full_pose']
-visu(positions, 30)
+#positions = a['full_pose']
+#visu(positions, 30)
