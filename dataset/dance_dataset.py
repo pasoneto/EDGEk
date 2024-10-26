@@ -68,7 +68,9 @@ class AISTPPDataset(Dataset):
         )
 
         # process data, convert to 6dof etc
-        pose_input = self.process_dataset(data["pos"], data["q"])
+        #pose_input = self.process_dataset(data["pos"], data["q"])
+        pose_input = data["full_pose"]
+        print(f"In process dataset, pose input is of shape {pose_input.shape}")
         self.data = {
             "pose": pose_input,
             "filenames": data["filenames"],
@@ -110,6 +112,7 @@ class AISTPPDataset(Dataset):
         all_pos = []
         all_q = []
         all_names = []
+        all_poses = []
         assert len(motions) == len(features)
         for motion, feature in zip(motions, features):
             # make sure name is matching
@@ -118,19 +121,23 @@ class AISTPPDataset(Dataset):
             assert m_name == f_name, str((motion, feature))
             # load motion
             data = pickle.load(open(motion, "rb"))
-            pos = data["pos"]
-            q = data["q"]
-            all_pos.append(pos)
-            all_q.append(q)
-            all_names.append(feature)
+            all_poses.append(data)
+#            pos = data["pos"]
+#            q = data["q"]
+#            all_pos.append(pos)
+#            all_q.append(q)
+#            all_names.append(feature)
 
-        all_pos = np.array(all_pos)  # N x seq x 3
-        all_q = np.array(all_q)  # N x seq x (joint * 3)
+#        Removing these because data is already comning processed with fk
+
+#        all_pos = np.array(all_pos)  # N x seq x 3
+#        all_q = np.array(all_q)  # N x seq x (joint * 3)
         # downsample the motions to the data fps
-        print(all_pos.shape)
-        all_pos = all_pos[:, :: self.data_stride, :]
-        all_q = all_q[:, :: self.data_stride, :]
-        data = {"pos": all_pos, "q": all_q, "filenames": all_names}
+#        all_pos = all_pos[:, :: self.data_stride, :]
+#        all_q = all_q[:, :: self.data_stride, :]
+#        data = {"pos": all_pos, "q": all_q, "filenames": all_names}
+        all_poses = np.array(all_poses)
+        data = {"full_pose": all_poses, "filenames": all_names}
         return data
 
     def process_dataset(self, root_pos, local_q):
