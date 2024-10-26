@@ -64,7 +64,7 @@ class AISTPPDataset(Dataset):
                 pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
 
         print(
-            f"Loaded {self.name} Dataset With Dimensions: Pos: {data['pos'].shape}, Q: {data['q'].shape}"
+            f"Loaded {self.name} Dataset With Dimensions: Pos: {data['full_pose'].shape}"
         )
 
         # process data, convert to 6dof etc
