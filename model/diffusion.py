@@ -477,21 +477,21 @@ class GaussianDiffusion(nn.Module):
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
         # FK loss
-        b, s, c = model_out.shape
+#        b, s, c = model_out.shape
         # unnormalize
         # model_out = self.normalizer.unnormalize(model_out)
         # target = self.normalizer.unnormalize(target)
         # X, Q
-        model_x = model_out[:, :, :3]
-        model_q = ax_from_6v(model_out[:, :, 3:].reshape(b, s, -1, 6))
-        target_x = target[:, :, :3]
-        target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
+#        model_x = model_out[:, :, :3]
+#        model_q = ax_from_6v(model_out[:, :, 3:].reshape(b, s, -1, 6))
+#        target_x = target[:, :, :3]
+#        target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
 
         # perform FK
-        model_xp, _ = self.smpl.forward(model_q, model_x)
-        target_xp, _ = self.smpl.forward(target_q, target_x)
+#        model_xp, _ = self.smpl.forward(model_q, model_x)
+#        target_xp, _ = self.smpl.forward(target_q, target_x)
 
-        fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
+        fk_loss = self.loss_fn(model_out, target, reduction="none")
         fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
         fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
 
@@ -500,7 +500,7 @@ class GaussianDiffusion(nn.Module):
 
         # find static indices consistent with model's own predictions
         static_idx = model_contact > 0.95  # N x S x 4
-        model_feet = model_xp[:, :, foot_idx]  # foot positions (N, S, 4, 3)
+        model_feet = model_out[:, :, foot_idx]  # foot positions (N, S, 4, 3)
         model_foot_v = torch.zeros_like(model_feet)
         model_foot_v[:, :-1] = (
             model_feet[:, 1:, :, :] - model_feet[:, :-1, :, :]
@@ -515,7 +515,8 @@ class GaussianDiffusion(nn.Module):
             0.636 * loss.mean(),
             2.964 * v_loss.mean(),
             0.646 * fk_loss.mean(),
-            10.942 * foot_loss.mean(),
+            2.942 * foot_loss.mean(),
+#            10.942 * foot_loss.mean(),
         )
         return sum(losses), losses
 
@@ -546,9 +547,9 @@ class GaussianDiffusion(nn.Module):
         normalizer,
         epoch,
         render_out,
-        fk_out="./",
+        fk_out="./generated_dances",
         name=None,
-        sound=True,
+        sound=False,
         mode="normal",
         noise=None,
         constraint=None,
@@ -582,10 +583,12 @@ class GaussianDiffusion(nn.Module):
         samples = normalizer.unnormalize(samples)
 
         if samples.shape[2] == 151:
+            print("samples shape third dimension is 151")
             sample_contact, samples = torch.split(
                 samples, (4, samples.shape[2] - 4), dim=2
             )
         else:
+            print("samples shape third dimension is NOT 151")
             sample_contact = None
         # do the FK all at once
         b, s, c = samples.shape
@@ -674,7 +677,9 @@ class GaussianDiffusion(nn.Module):
                 )
             return
 
-        poses, _ = self.smpl.forward(q, pos)
+#        poses, _ = self.smpl.forward(q, pos)
+        poses = samples
+        print(f"Setando poses as samples with shape {poses.shape}")
         poses = poses.detach().cpu().numpy()
         sample_contact = (
             sample_contact.detach().cpu().numpy()
@@ -705,7 +710,6 @@ class GaussianDiffusion(nn.Module):
                 pathparts[-1] = pathparts[-1].replace("npy", "wav")
                 # path is like "data/train/features/name"
                 pathparts[2] = "wav_sliced"
-                audioname = os.path.join(*pathparts)
                 outname = f"{epoch}_{num}_{pathparts[-1][:-4]}.pkl"
                 pickle.dump(
                     {
