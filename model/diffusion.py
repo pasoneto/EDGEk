@@ -583,7 +583,7 @@ class GaussianDiffusion(nn.Module):
         samples = normalizer.unnormalize(samples)
 
         if samples.shape[2] == 151:
-            print("samples shape third dimension is 151")
+            print("samples shape third dimension is 151, so there's foot contact")
             sample_contact, samples = torch.split(
                 samples, (4, samples.shape[2] - 4), dim=2
             )
@@ -591,13 +591,16 @@ class GaussianDiffusion(nn.Module):
             print("samples shape third dimension is NOT 151")
             sample_contact = None
         # do the FK all at once
-        b, s, c = samples.shape
-        pos = samples[:, :, :3].to(cond.device)  # np.zeros((sample.shape[0], 3))
-        q = samples[:, :, 3:].reshape(b, s, 24, 6)
+#        b, s, c = samples.shape
+#        pos = samples[:, :, :3].to(cond.device)  # np.zeros((sample.shape[0], 3))
+#        q = samples[:, :, 3:].reshape(b, s, 24, 6)
         # go 6d to ax
-        q = ax_from_6v(q).to(cond.device)
+#        q = ax_from_6v(q).to(cond.device)
+        samples = samples.to(cond.device)
+        print(f"Shape of predicted data (sample) is {samples.shape}")
 
-        if mode == "long":
+#        if mode == "long":
+        if False:
             b, s, c1, c2 = q.shape
             assert s % 2 == 0
             half = s // 2
@@ -704,7 +707,7 @@ class GaussianDiffusion(nn.Module):
 
         if fk_out is not None and mode != "long":
             Path(fk_out).mkdir(parents=True, exist_ok=True)
-            for num, (qq, pos_, filename, pose) in enumerate(zip(q, pos, name, poses)):
+            for num, (filename, pose) in enumerate(zip(name, poses)):
                 path = os.path.normpath(filename)
                 pathparts = path.split(os.sep)
                 pathparts[-1] = pathparts[-1].replace("npy", "wav")
@@ -713,8 +716,8 @@ class GaussianDiffusion(nn.Module):
                 outname = f"{epoch}_{num}_{pathparts[-1][:-4]}.pkl"
                 pickle.dump(
                     {
-                        "smpl_poses": qq.reshape((-1, 72)).cpu().numpy(),
-                        "smpl_trans": pos_.cpu().numpy(),
+                        #"smpl_poses": qq.reshape((-1, 72)).cpu().numpy(),
+                        #"smpl_trans": pos_.cpu().numpy(),
                         "full_pose": pose,
                     },
                     open(f"{fk_out}/{outname}", "wb"),

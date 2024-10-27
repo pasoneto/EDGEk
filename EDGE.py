@@ -281,7 +281,7 @@ class EDGE:
             label,
             render_dir,
             name=file_names,
-            sound=True,
+            sound=False,
             mode="normal",
             fk_out=fk_out,
             render=render
