@@ -51,7 +51,8 @@ class AISTPPDataset(Dataset):
         )
 
         # process data, convert to 6dof etc
-        pose_input = self.process_dataset(data["pos"])
+        pose_input = self.process_dataset(torch.from_numpy(data["pos"]))
+        
         self.data = {
             "pose": pose_input,
             "filenames": data["filenames"],
