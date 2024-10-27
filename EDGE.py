@@ -45,7 +45,7 @@ class EDGE:
 #        pos_dim = 3
 #        rot_dim = 24 * 6  # 24 joints, 6dof
 #        self.repr_dim = repr_dim = pos_dim + rot_dim + 4
-        self.repr_dim = 72 #Because output is already position
+        self.repr_dim = repr_dim = 72 #Because output is already position
 
         feature_dim = 147
 
