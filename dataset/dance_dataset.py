@@ -72,7 +72,7 @@ class AISTPPDataset(Dataset):
         pose_input = data["full_pose"]
         self.data = {
             "pose": pose_input,
-            "filenames": data["filenames"],
+            "filenames": np.array(data["filenames"]),
         }
         assert len(pose_input) == len(self.data["filenames"])
         self.length = len(pose_input)
