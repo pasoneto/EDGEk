@@ -74,8 +74,6 @@ class AISTPPDataset(Dataset):
             "pose": pose_input,
             "filenames": data["filenames"],
         }
-        print(f"length pose is {len(pose_input)}")
-        print(f"length filenames is {len(self.data['filenames'])}")
         assert len(pose_input) == len(self.data["filenames"])
         self.length = len(pose_input)
 
@@ -123,16 +121,12 @@ class AISTPPDataset(Dataset):
             # load motion
             data = pickle.load(open(motion, "rb"))
             all_poses.append(data)
-            all_names.append(m_name)
-            print(f"adding {m_name}")
+            all_names.append(motion)
 #            pos = data["pos"]
 #            q = data["q"]
 #            all_pos.append(pos)
 #            all_q.append(q)
 #            all_names.append(feature)
-        print("Double check here")
-        print(len(all_names))
-        print(len(all_poses))
 #        Removing these because data is already comning processed with fk
 
 #        all_pos = np.array(all_pos)  # N x seq x 3
