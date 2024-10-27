@@ -101,6 +101,7 @@ class AISTPPDataset(Dataset):
             assert m_name == f_name, str((motion, feature))
             # load motion
             data = pickle.load(open(motion, "rb"))
+            data = data.reshape(data.shape[0], data.shape[1]*data.shape[2])
             all_pos.append(data)
             all_names.append(feature)
 
@@ -111,7 +112,7 @@ class AISTPPDataset(Dataset):
     def process_dataset(self, data):
 
         # now, flatten everything into: batch x sequence x [...]
-        global_pose_vec_input = data.reshape(data.shape[0], data.shape[1]*data.shape[2])
+        global_pose_vec_input = data
         print(f"Converted to shape {global_pose_vec_input.shape}")
 
         # normalize the data. Both train and test need the same normalizer.
