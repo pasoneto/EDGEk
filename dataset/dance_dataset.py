@@ -124,12 +124,15 @@ class AISTPPDataset(Dataset):
             data = pickle.load(open(motion, "rb"))
             all_poses.append(data)
             all_names.append(m_name)
+            print(f"adding {m_name}")
 #            pos = data["pos"]
 #            q = data["q"]
 #            all_pos.append(pos)
 #            all_q.append(q)
 #            all_names.append(feature)
-
+        print("Double check here")
+        print(len(all_names))
+        print(len(all_poses))
 #        Removing these because data is already comning processed with fk
 
 #        all_pos = np.array(all_pos)  # N x seq x 3
