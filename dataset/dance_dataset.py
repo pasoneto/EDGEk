@@ -70,11 +70,12 @@ class AISTPPDataset(Dataset):
         # process data, convert to 6dof etc
         #pose_input = self.process_dataset(data["pos"], data["q"])
         pose_input = data["full_pose"]
-        print(f"In process dataset, pose input is of shape {pose_input.shape}")
         self.data = {
             "pose": pose_input,
             "filenames": data["filenames"],
         }
+        print(f"length pose is {len(pose_input)}")
+        print(f"length filenames is {len(data['filenames'])}")
         assert len(pose_input) == len(data["filenames"])
         self.length = len(pose_input)
 
