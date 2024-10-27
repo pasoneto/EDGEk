@@ -702,7 +702,7 @@ class GaussianDiffusion(nn.Module):
                 contact=contact,
             )
 
-        p_map(inner, enumerate(poses))
+        #p_map(inner, enumerate(poses))
 
         if fk_out is not None and mode != "long":
             Path(fk_out).mkdir(parents=True, exist_ok=True)
