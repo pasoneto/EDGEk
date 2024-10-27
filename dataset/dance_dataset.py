@@ -75,8 +75,8 @@ class AISTPPDataset(Dataset):
             "filenames": data["filenames"],
         }
         print(f"length pose is {len(pose_input)}")
-        print(f"length filenames is {len(data['filenames'])}")
-        assert len(pose_input) == len(data["filenames"])
+        print(f"length filenames is {len(self.data['filenames'])}")
+        assert len(pose_input) == len(self.data["filenames"])
         self.length = len(pose_input)
 
     def __len__(self):
