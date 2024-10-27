@@ -43,13 +43,11 @@ class AISTPPDataset(Dataset):
         self.normalizer = normalizer
         self.data_len = data_len
 
-        pickle_name = "processed_train_data.pkl" if train else "processed_test_data.pkl"
-
         print("Loading dataset...")
         data = self.load_aistpp()  # Call this last
 
         print(
-            f"Loaded {self.name} Dataset With Dimensions: Pos: {data['pos'].shape}, Q: {data['q'].shape}"
+            f"Loaded {self.name} Dataset With Dimensions: Pos: {data['pos'].shape}"
         )
 
         # process data, convert to 6dof etc
@@ -107,8 +105,6 @@ class AISTPPDataset(Dataset):
             all_names.append(feature)
 
         all_pos = np.array(all_pos)  # N x seq x 3
-        # downsample the motions to the data fps
-        print(all_pos.shape)
         data = {"pos": all_pos, "filenames": all_names}
         return data
 
