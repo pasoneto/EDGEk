@@ -42,9 +42,10 @@ class EDGE:
         state = AcceleratorState()
         num_processes = state.num_processes
 
-        pos_dim = 3
-        rot_dim = 24 * 6  # 24 joints, 6dof
-        self.repr_dim = repr_dim = pos_dim + rot_dim + 4
+#        pos_dim = 3
+#        rot_dim = 24 * 6  # 24 joints, 6dof
+#        self.repr_dim = repr_dim = pos_dim + rot_dim + 4
+        self.repr_dim = 72 #Because output is already position
 
         feature_dim = 147
 
