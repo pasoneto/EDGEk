@@ -123,6 +123,7 @@ class AISTPPDataset(Dataset):
             # load motion
             data = pickle.load(open(motion, "rb"))
             all_poses.append(data)
+            all_names.append(f_name)
 #            pos = data["pos"]
 #            q = data["q"]
 #            all_pos.append(pos)
