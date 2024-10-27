@@ -596,7 +596,6 @@ class GaussianDiffusion(nn.Module):
 #        q = samples[:, :, 3:].reshape(b, s, 24, 6)
         # go 6d to ax
 #        q = ax_from_6v(q).to(cond.device)
-        samples = samples.to(cond.device)
         print(f"Shape of predicted data (sample) is {samples.shape}")
 
 #        if mode == "long":
