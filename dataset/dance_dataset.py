@@ -24,7 +24,7 @@ class AISTPPDataset(Dataset):
         data_path: str,
         backup_path: str,
         train: bool,
-        feature_type: str = "accel",
+        feature_type: str = "jukebox",
         normalizer: Any = None,
         data_len: int = -1,
         include_contacts: bool = True,
@@ -45,36 +45,20 @@ class AISTPPDataset(Dataset):
 
         pickle_name = "processed_train_data.pkl" if train else "processed_test_data.pkl"
 
-        backup_path = Path(backup_path)
-        backup_path.mkdir(parents=True, exist_ok=True)
-        # save normalizer
-        if not train:
-            pickle.dump(
-                normalizer, open(os.path.join(backup_path, "normalizer.pkl"), "wb")
-            )
-        # load raw data
-        if not force_reload and pickle_name in os.listdir(backup_path):
-            print("Using cached dataset...")
-            with open(os.path.join(backup_path, pickle_name), "rb") as f:
-                data = pickle.load(f)
-        else:
-            print("Loading dataset...")
-            data = self.load_aistpp()  # Call this last
-            with open(os.path.join(backup_path, pickle_name), "wb") as f:
-                pickle.dump(data, f, pickle.HIGHEST_PROTOCOL)
+        print("Loading dataset...")
+        data = self.load_aistpp()  # Call this last
 
         print(
-            f"Loaded {self.name} Dataset With Dimensions: Pos: {data['full_pose'].shape}"
+            f"Loaded {self.name} Dataset With Dimensions: Pos: {data['pos'].shape}, Q: {data['q'].shape}"
         )
 
         # process data, convert to 6dof etc
-        #pose_input = self.process_dataset(data["pos"], data["q"])
-        pose_input = data["full_pose"]
+        pose_input = self.process_dataset(data["pos"])
         self.data = {
             "pose": pose_input,
-            "filenames": np.array(data["filenames"]),
+            "filenames": data["filenames"],
         }
-        assert len(pose_input) == len(self.data["filenames"])
+        assert len(pose_input) == len(data["filenames"])
         self.length = len(pose_input)
 
     def __len__(self):
@@ -95,23 +79,22 @@ class AISTPPDataset(Dataset):
         # data
         #   |- train
         #   |    |- motion_sliced
+        #   |    |- wav_sliced
         #   |    |- baseline_features
         #   |    |- jukebox_features
-        #   |    |- accel_feats **New
         #   |    |- motions
-        
-        #User code begins
-        motion_path = os.path.join(split_data_path, "motions_sliced")
-        accel_path = os.path.join(split_data_path, f"features")
+        #   |    |- wavs
 
+        motion_path = os.path.join(split_data_path, "motions_sliced")
+        features = os.path.join(split_data_path, f"features")
+
+        # sort motions and sounds
         motions = sorted(glob.glob(os.path.join(motion_path, "*.pkl")))
-        features = sorted(glob.glob(os.path.join(accel_path, "*.pkl")))
+        features = sorted(glob.glob(os.path.join(features, "*.pkl")))
 
         # stack the motions and features together
         all_pos = []
-        all_q = []
         all_names = []
-        all_poses = []
         assert len(motions) == len(features)
         for motion, feature in zip(motions, features):
             # make sure name is matching
@@ -120,66 +103,19 @@ class AISTPPDataset(Dataset):
             assert m_name == f_name, str((motion, feature))
             # load motion
             data = pickle.load(open(motion, "rb"))
-            all_poses.append(data)
+            all_pos.append(data)
             all_names.append(feature)
-            print(motion)
-#            pos = data["pos"]
-#            q = data["q"]
-#            all_pos.append(pos)
-#            all_q.append(q)
-#            all_names.append(feature)
-#        Removing these because data is already comning processed with fk
 
-#        all_pos = np.array(all_pos)  # N x seq x 3
-#        all_q = np.array(all_q)  # N x seq x (joint * 3)
+        all_pos = np.array(all_pos)  # N x seq x 3
         # downsample the motions to the data fps
-#        all_pos = all_pos[:, :: self.data_stride, :]
-#        all_q = all_q[:, :: self.data_stride, :]
-#        data = {"pos": all_pos, "q": all_q, "filenames": all_names}
-        all_poses = np.array(all_poses)
-        all_names = np.array(all_names)
-        data = {"full_pose": all_poses, "filenames": all_names}
+        print(all_pos.shape)
+        data = {"pos": all_pos, "filenames": all_names}
         return data
 
-    def process_dataset(self, root_pos, local_q):
-        # FK skeleton
-        smpl = SMPLSkeleton()
-        # to Tensor
-        root_pos = torch.Tensor(root_pos)
-        local_q = torch.Tensor(local_q)
-        # to ax
-        bs, sq, c = local_q.shape
-        local_q = local_q.reshape((bs, sq, -1, 3))
-
-        if self.train:
-            # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
-            root_q = local_q[:, :, :1, :]  # sequence x 1 x 3
-            root_q_quat = axis_angle_to_quaternion(root_q)
-            rotation = torch.Tensor(
-                [0.7071068, 0.7071068, 0, 0]
-            )  # 90 degrees about the x axis
-            root_q_quat = quaternion_multiply(rotation, root_q_quat)
-            root_q = quaternion_to_axis_angle(root_q_quat)
-            local_q[:, :, :1, :] = root_q
-
-            # don't forget to rotate the root position too 😩
-            pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
-            root_pos = pos_rotation.transform_points(
-                root_pos
-            )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
-
-        # do FK
-        positions, _ = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3. Second element is rotation
-        feet = positions[:, :, (7, 8, 10, 11)]
-        feetv = torch.zeros(feet.shape[:3])
-        feetv[:, :-1] = (feet[:, 1:] - feet[:, :-1]).norm(dim=-1)
-        contacts = (feetv < 0.01).to(local_q)  # cast to right dtype
-
-        # to 6d
-        local_q = ax_to_6v(local_q)
+    def process_dataset(self, data):
 
         # now, flatten everything into: batch x sequence x [...]
-        l = [contacts, root_pos, local_q]
+        l = [data]
         global_pose_vec_input = vectorize_many(l).float().detach()
 
         # normalize the data. Both train and test need the same normalizer.
@@ -254,9 +190,9 @@ class OrderedMusicDataset(Dataset):
             seq_slice = seq[start : start + batch_size]
 
         # now we have a batch of filenames
-        filenames = [os.path.join(self.music_path, x + ".npy") for x in seq_slice]
+        filenames = [os.path.join(self.music_path, x + ".pkl") for x in seq_slice]
         # get the features
-        features = np.array([np.load(x, allow_pickle=True) for x in filenames])
+        features = np.array([np.load(x) for x in filenames])
 
         return torch.Tensor(features), seq_slice
 
@@ -288,7 +224,7 @@ class OrderedMusicDataset(Dataset):
                 return 1
             return 0
 
-        for features in glob.glob(os.path.join(music_path, "*.npy")):
+        for features in glob.glob(os.path.join(music_path, "*.pkl")):
             fname = os.path.splitext(os.path.basename(features))[0]
             all_names.append(fname)
         all_names = sorted(all_names, key=cmp_to_key(stringintcmp))
