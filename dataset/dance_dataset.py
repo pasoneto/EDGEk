@@ -112,9 +112,8 @@ class AISTPPDataset(Dataset):
 
     def process_dataset(self, data):
 
-        # now, flatten everything into: batch x sequence x [...]
         global_pose_vec_input = data
-        print(f"Converted to shape {global_pose_vec_input.shape}")
+        print(f"Received processed data with shape {global_pose_vec_input.shape}")
 
         # normalize the data. Both train and test need the same normalizer.
         if self.train:

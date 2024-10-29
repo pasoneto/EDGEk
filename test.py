@@ -68,7 +68,6 @@ def test(opt):
     for temp_dir in temp_dir_list:
         temp_dir.cleanup()
 
-
 if __name__ == "__main__":
     opt = parse_test_opt()
     test(opt)

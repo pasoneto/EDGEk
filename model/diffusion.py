@@ -55,6 +55,7 @@ class GaussianDiffusion(nn.Module):
         guidance_weight=3,
         use_p2=False,
         cond_drop_prob=0.2,
+        run_foot_loss = False
     ):
         super().__init__()
         self.horizon = horizon
@@ -62,6 +63,7 @@ class GaussianDiffusion(nn.Module):
         self.model = model
         self.ema = EMA(0.9999)
         self.master_model = copy.deepcopy(self.model)
+        self.run_foot_loss = run_foot_loss
 
         self.cond_drop_prob = cond_drop_prob
 
@@ -464,10 +466,12 @@ class GaussianDiffusion(nn.Module):
         loss = loss * extract(self.p2_loss_weight, t, loss.shape)
 
         # split off contact from the rest
-#        model_contact, model_out = torch.split(
-#            model_out, (4, model_out.shape[2] - 4), dim=2
-#        )
-#        target_contact, target = torch.split(target, (4, target.shape[2] - 4), dim=2)
+        if self.run_foot_loss:
+            model_contact, model_out = torch.split(
+                model_out, (4, model_out.shape[2] - 4), dim=2
+            )
+            target_contact, target = torch.split(target, (4, target.shape[2] - 4), dim=2)
+
 
         # velocity loss
         target_v = target[:, 1:] - target[:, :-1]
@@ -476,49 +480,60 @@ class GaussianDiffusion(nn.Module):
         v_loss = reduce(v_loss, "b ... -> b (...)", "mean")
         v_loss = v_loss * extract(self.p2_loss_weight, t, v_loss.shape)
 
-        # FK loss
-#        b, s, c = model_out.shape
-        # unnormalize
-        # model_out = self.normalizer.unnormalize(model_out)
-        # target = self.normalizer.unnormalize(target)
-        # X, Q
-#        model_x = model_out[:, :, :3]
-#        model_q = ax_from_6v(model_out[:, :, 3:].reshape(b, s, -1, 6))
-#        target_x = target[:, :, :3]
-#        target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
+        if self.run_foot_loss:
+            # FK loss
+            b, s, c = model_out.shape
+            # X, Q
+            model_x = model_out[:, :, :3]
+            model_q = ax_from_6v(model_out[:, :, 3:].reshape(b, s, -1, 6))
+            target_x = target[:, :, :3]
+            target_q = ax_from_6v(target[:, :, 3:].reshape(b, s, -1, 6))
 
-        # perform FK
-#        model_xp, _ = self.smpl.forward(model_q, model_x)
-#        target_xp, _ = self.smpl.forward(target_q, target_x)
+            # perform FK
+            model_xp, _ = self.smpl.forward(model_q, model_x)
+            target_xp, _ = self.smpl.forward(target_q, target_x)
 
-        fk_loss = self.loss_fn(model_out, target, reduction="none")
-        fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
-        fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
+            fk_loss = self.loss_fn(model_xp, target_xp, reduction="none")
+            fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
+            fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
 
-        # foot skate loss
-        foot_idx = [7, 8, 10, 11]
+            # foot skate loss
+            foot_idx = [7, 8, 10, 11]
 
-        # find static indices consistent with model's own predictions
-#        static_idx = model_contact > 0.95  # N x S x 4
-#        model_feet = model_out[:, :, foot_idx]  # foot positions (N, S, 4, 3)
-#        model_foot_v = torch.zeros_like(model_feet)
-#        model_foot_v[:, :-1] = (
-#            model_feet[:, 1:, :, :] - model_feet[:, :-1, :, :]
-#        )  # (N, S-1, 4, 3)
-#        model_foot_v[~static_idx] = 0
-#        foot_loss = self.loss_fn(
-#            model_foot_v, torch.zeros_like(model_foot_v), reduction="none"
-#        )
-#        foot_loss = reduce(foot_loss, "b ... -> b (...)", "mean")
+            # find static indices consistent with model's own predictions
+            static_idx = model_contact > 0.95  # N x S x 4
+            model_feet = model_xp[:, :, foot_idx]  # foot positions (N, S, 4, 3)
+            model_foot_v = torch.zeros_like(model_feet)
+            model_foot_v[:, :-1] = (
+                model_feet[:, 1:, :, :] - model_feet[:, :-1, :, :]
+            )  # (N, S-1, 4, 3)
+            model_foot_v[~static_idx] = 0
+            foot_loss = self.loss_fn(
+                model_foot_v, torch.zeros_like(model_foot_v), reduction="none"
+            )
+            foot_loss = reduce(foot_loss, "b ... -> b (...)", "mean")
 
-        losses = (
-            0.636 * loss.mean(),
-            2.964 * v_loss.mean(),
-            0.646 * fk_loss.mean(),
-#            2.942 * foot_loss.mean(),
-#            10.942 * foot_loss.mean(),
-        )
-        return sum(losses), losses
+            losses = (
+                0.636 * loss.mean(),
+                2.964 * v_loss.mean(),
+                0.646 * fk_loss.mean(),
+                10.942 * foot_loss.mean(),
+            )
+            return sum(losses), losses
+
+        else:
+
+            fk_loss = self.loss_fn(model_out, target, reduction="none")
+            fk_loss = reduce(fk_loss, "b ... -> b (...)", "mean")
+            fk_loss = fk_loss * extract(self.p2_loss_weight, t, fk_loss.shape)
+
+            losses = (
+                0.636 * loss.mean(),
+                2.964 * v_loss.mean(),
+                0.646 * fk_loss.mean(),
+            )
+            return sum(losses), losses
+
 
     def loss(self, x, cond, t_override=None):
         batch_size = len(x)
@@ -590,12 +605,15 @@ class GaussianDiffusion(nn.Module):
         else:
             print("samples shape third dimension is NOT 151")
             sample_contact = None
-        # do the FK all at once
-#        b, s, c = samples.shape
-#        pos = samples[:, :, :3].to(cond.device)  # np.zeros((sample.shape[0], 3))
-#        q = samples[:, :, 3:].reshape(b, s, 24, 6)
-        # go 6d to ax
-#        q = ax_from_6v(q).to(cond.device)
+        
+        if self.run_foot_loss:
+            # do the FK all at once
+            b, s, c = samples.shape
+            pos = samples[:, :, :3].to(cond.device)  # np.zeros((sample.shape[0], 3))
+            q = samples[:, :, 3:].reshape(b, s, 24, 6)
+            # go 6d to ax
+            q = ax_from_6v(q).to(cond.device)
+
         print(f"Shape of predicted data (sample) is {samples.shape}")
 
 #        if mode == "long":
@@ -679,8 +697,10 @@ class GaussianDiffusion(nn.Module):
                 )
             return
 
-#        poses, _ = self.smpl.forward(q, pos)
-        poses = samples
+        if self.run_foot_loss:
+            poses, _ = self.smpl.forward(q, pos)
+        else:
+            poses = samples
         print(f"Setando poses as samples with shape {poses.shape}")
         poses = poses.detach().cpu().numpy()
         sample_contact = (

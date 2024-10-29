@@ -2,7 +2,10 @@ import os
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
+import json
+import glob
 import librosa as lr
+import pandas as pd
 import matplotlib.animation as animation
 import matplotlib.pyplot as plt
 import numpy as np
@@ -15,6 +18,8 @@ from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
 
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
+
+from dataset.quaternion import ax_from_6v
 
 from tqdm import tqdm
 
@@ -541,18 +546,83 @@ def visu_2d(position1, position2, sr):
 
     plt.show()
 
+def cart2pol(x, y):
+    theta = np.arctan2(y, x)
+    r = np.hypot(x, y)
+    return theta, r
 
-#base_name = "CLIO_Roditikos_poses_slice5"
-#og = f"/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/motions_sliced/{base_name}.pkl"
-#og = np.load(og, allow_pickle=True)
+def mcrotate(data, angle, axis):
+    # Convert angle from degrees to radians
+    angle_rad = np.radians(angle)
+    # Assuming 3D rotation around the specified axis; axis is [x, y, z]
+    rotation_matrix = np.array([
+        [np.cos(angle_rad), -np.sin(angle_rad), 0],
+        [np.sin(angle_rad),  np.cos(angle_rad), 0],
+        [0,                 0,                 1]
+    ])
+    return data @ rotation_matrix.T  # Apply rotation to all points in data
 
-#pred = f"/Users/pdealcan/Downloads/14400_1_{base_name}.pkl"
-#pred = np.load(pred, allow_pickle=True)
-#pred = pred['full_pose'].reshape(300, 24, 3)
+def toFront(data, m1, m2):
+    # Select the required columns from dat
+    tmp = data[:, m1, :]
+    tmp2 = data[:, m2, :]
 
-#og = rotate_front(og)
-#pred = rotate_front(pred)
+    # Calculate means
+    x1 = torch.mean(torch.tensor(tmp[:, 0]))
+    y1 = torch.mean(torch.tensor(tmp[:, 1]))
+    x2 = torch.mean(torch.tensor(tmp2[:, 0]))
+    y2 = torch.mean(torch.tensor(tmp2[:, 1]))
 
-#positions, _ = smplToPosition(a['q'], a['pos'], 1, aist = False)
-#positions = positions[0]
-#visu_2d(og, pred, 30)
+    # Convert Cartesian coordinates to polar coordinates
+    th, r = cart2pol(x1 - x2, y1 - y2)
+
+    # Calculate rotation angle in degrees
+    theta = 180 - 180 * th / np.pi
+
+    # Apply rotation to data
+    data = mcrotate(data, theta, [0, 0, 1])
+
+    return data
+
+def remove_foot_contact_and_fk(og):
+    sample_contact, samples = torch.split(
+        og, (4, og.shape[1] - 4), dim=1
+    )
+    s, c = samples.shape
+    pos = samples[:, :3]
+    q = samples[:, 3:].reshape(s, 24, 6)
+    q = ax_from_6v(q)
+    q = q.reshape(s, q.shape[1]*q.shape[2])
+    p, _ = smplToPosition(q, pos, 1, aist = False)
+    p = p[0]
+    return(p)
+
+angle_out = True
+if False:
+    pred_path = "./generated_dances/"
+    test_path = "./data/test/motions_sliced/"
+    base_files = glob.glob(f"{test_path}/*.pkl")
+
+    # Convert the list to a DataFrame
+    video_list = pd.read_csv("./eval/rendered_videos.csv")
+    index_video = np.random.randint(0, len(video_list.index))
+
+    name = video_list['videos'][index_video]
+
+    real = f"{test_path}{name}.pkl"
+#    pred = f"{pred_path}{name}.pkl"
+
+    og = np.load(real, allow_pickle=True)
+#    pred = np.load(pred, allow_pickle=True)
+
+#    pred = pred['full_pose'].reshape(300, 24, 3)
+    if angle_out:
+        og = remove_foot_contact_and_fk(og)
+    else:
+        pass
+
+    og = toFront(og, 16, 17)
+#    pred = toFront(pred, 16, 17)
+    print(name)
+#    visu_double(og, pred, 30)
+    visu_single(og, 30)

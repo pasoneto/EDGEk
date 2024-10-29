@@ -36,16 +36,19 @@ class EDGE:
         EMA=True,
         learning_rate=4e-4,
         weight_decay=0.02,
+        run_foot_loss=False
     ):
         ddp_kwargs = DistributedDataParallelKwargs(find_unused_parameters=True)
         self.accelerator = Accelerator(kwargs_handlers=[ddp_kwargs])
         state = AcceleratorState()
         num_processes = state.num_processes
-
-#        pos_dim = 3
-#        rot_dim = 24 * 6  # 24 joints, 6dof
-#        self.repr_dim = repr_dim = pos_dim + rot_dim + 4
-        self.repr_dim = repr_dim = 72 #Because output is already position
+        
+        if run_foot_loss:
+            pos_dim = 3
+            rot_dim = 24 * 6  # 24 joints, 6dof
+            self.repr_dim = repr_dim = pos_dim + rot_dim + 4
+        else:
+            self.repr_dim = repr_dim = 72 #Because output is already position
 
         feature_dim = 147
 
@@ -54,6 +57,8 @@ class EDGE:
         self.horizon = horizon = horizon_seconds * FPS
 
         self.accelerator.wait_for_everyone()
+
+        self.run_foot_loss = run_foot_loss
 
         checkpoint = None
         if checkpoint_path != "":
@@ -193,14 +198,20 @@ class EDGE:
             avg_loss = 0
             avg_vloss = 0
             avg_fkloss = 0
+            avg_footloss = 0
             # train
             self.train()
             for step, (x, cond, filename) in enumerate(
                 load_loop(train_data_loader)
             ):
-                total_loss, (loss, v_loss, fk_loss) = self.diffusion(
-                    x, cond, t_override=None
-                )
+                if self.run_foot_loss: #no footloss in this case
+                    total_loss, (loss, v_loss, fk_loss, foot_loss) = self.diffusion( 
+                        x, cond, t_override=None
+                    )
+                else: #foot loss included
+                    total_loss, (loss, v_loss, fk_loss) = self.diffusion(
+                        x, cond, t_override=None
+                    )
                 self.optim.zero_grad()
                 self.accelerator.backward(total_loss)
 
@@ -211,6 +222,8 @@ class EDGE:
                     avg_loss += loss.detach().cpu().numpy()
                     avg_vloss += v_loss.detach().cpu().numpy()
                     avg_fkloss += fk_loss.detach().cpu().numpy()
+                    if self.run_foot_loss: #foot loss included
+                        avg_footloss += foot_loss.detach().cpu().numpy()
                     if step % opt.ema_interval == 0:
                         self.diffusion.ema.update_model_average(
                             self.diffusion.master_model, self.diffusion.model
@@ -226,6 +239,9 @@ class EDGE:
                     avg_loss /= len(train_data_loader)
                     avg_vloss /= len(train_data_loader)
                     avg_fkloss /= len(train_data_loader)
+                    if self.run_foot_loss:
+                        avg_footloss /= len(train_data_loader)
+
                     log_dict = {
                         "Train Loss": avg_loss,
                         "V Loss": avg_vloss,
@@ -240,9 +256,9 @@ class EDGE:
                         "normalizer": self.normalizer,
                     }
 
-                    with open(f"./loss/loss-redo-{epoch}.txt", "w") as fp:
+                    with open(f"./loss/exp2_loss-redo-{epoch}.txt", "w") as fp:
                         json.dump(log_dict, fp) 
-                    torch.save(ckpt, f"./weights/train-redo-{epoch}.pt")
+                    torch.save(ckpt, f"./weights/exp2-{epoch}.pt")
 
                     # generate a sample
                     render_count = 2
@@ -256,7 +272,7 @@ class EDGE:
                         cond[:render_count],
                         self.normalizer,
                         epoch,
-                        os.path.join(opt.render_dir, "train_" + opt.exp_name),
+                        os.path.join(opt.render_dir, "train_current"),
                         name=filename,
                         sound=False,
                     )

@@ -13,7 +13,7 @@ from dataset.dance_dataset import *
 from pytorch3d.transforms import (axis_angle_to_quaternion, quaternion_apply,
                                   quaternion_multiply, quaternion_to_axis_angle, RotateAxisAngle)
 
-from vis import SMPLSkeleton, visu, smplToPosition
+from vis import SMPLSkeleton, smplToPosition, visu_single
 from dataset.quaternion import ax_from_6v, quat_slerp
 
 from scipy.signal import butter, filtfilt
@@ -163,18 +163,16 @@ def extractFeats(acceleration_data, windowLength):
 
 def feat_extract(motion_file_sliced, output_feats, feature_type = "accelerometer", marker1 = None, marker2 = None, position_out = False, aist = True):
     file_name = os.path.splitext(os.path.basename(motion_file_sliced))[0]
+    motion = np.load(motion_file_sliced, allow_pickle=True)
 
-    if position_out == False:
-        motion = dict(np.load(motion_file_sliced, allow_pickle=True))
-    else:
-        motion = np.load(motion_file_sliced, allow_pickle=True)
+    if position_out: #If only positions, second dimension needs to have 24 items
+        assert motion.shape[1] == 24
+        positions = motion.reshape(300, 24*3)
+    else: #If angles and contact second dimension needs to have 151 items (6dof + 4 from contact + 3 global rotation)
+        assert motion.shape[1] == 151
+        positions = remove_foot_contact_and_fk(motion)
 
-    if position_out == False:
-        pos, q, _ = motion["pos"], motion["q"], 1 #q: 3, pos: 24
-        positions, _ = smplToPosition(q, pos, 1, aist = aist)
-        positions = positions[0]
-    else:
-        positions = motion
+    assert positions.shape[1] == 24
 
     if feature_type == "accelerometer":
         IMUs = extractIMUs(positions)
@@ -197,4 +195,72 @@ def extract_features(input_sliced, output_feats, feature_type = "accelerometer",
     return None
 
 
+def remove_foot_contact_and_fk(og):
+    sample_contact, samples = torch.split(
+        og, (4, og.shape[1] - 4), dim=1
+    )
+    s, c = samples.shape
+    pos = samples[:, :3]
+    q = samples[:, 3:].reshape(s, 24, 6)
+    q = ax_from_6v(q)
+    q = q.reshape(s, q.shape[1]*q.shape[2])
+    p, _ = smplToPosition(q, pos, 1, aist = False)
+    p = p[0]
+    return(p)
 
+def add_foot_contact(root_pos, local_q, aist = True):
+    # FK skeleton
+    smpl = SMPLSkeleton()
+    # to Tensor
+    root_pos = torch.Tensor(np.array([root_pos]))
+    local_q = torch.Tensor(np.array([local_q]))
+    # to ax
+    bs, sq, c = local_q.shape
+    local_q = local_q.reshape((bs, sq, -1, 3))
+
+    if aist:
+        # AISTPP dataset comes y-up - rotate to z-up to standardize against the pretrain dataset
+        root_q = local_q[:, :, :1, :]  # sequence x 1 x 3
+        root_q_quat = axis_angle_to_quaternion(root_q)
+        rotation = torch.Tensor(
+            [0.7071068, 0.7071068, 0, 0]
+        )  # 90 degrees about the x axis
+        root_q_quat = quaternion_multiply(rotation, root_q_quat)
+        root_q = quaternion_to_axis_angle(root_q_quat)
+        local_q[:, :, :1, :] = root_q
+
+        # don't forget to rotate the root position too 😩
+        pos_rotation = RotateAxisAngle(90, axis="X", degrees=True)
+        root_pos = pos_rotation.transform_points(
+            root_pos
+        )  # basically (y, z) -> (-z, y), expressed as a rotation for readability
+
+    # do FK
+    positions, rotations = smpl.forward(local_q, root_pos)  # batch x sequence x 24 x 3
+    feet = positions[:, :, (7, 8, 10, 11)]
+    feetv = torch.zeros(feet.shape[:3])
+    feetv[:, :-1] = (feet[:, 1:] - feet[:, :-1]).norm(dim=-1)
+    contacts = (feetv < 0.01).to(local_q)  # cast to right dtype
+
+    # to 6d
+    local_q = ax_to_6v(local_q)
+
+    # now, flatten everything into: batch x sequence x [...]
+    l = [contacts, root_pos, local_q]
+    global_pose_vec_input = vectorize_many(l).float().detach()
+
+    # normalize the data. Both train and test need the same normalizer.
+#    if self.train:
+#        self.normalizer = Normalizer(global_pose_vec_input)
+#    else:
+#        assert self.normalizer is not None
+#    global_pose_vec_input = self.normalizer.normalize(global_pose_vec_input)
+
+    assert not torch.isnan(global_pose_vec_input).any()
+    data_name = "Train" if aist else "Test"
+
+    global_pose_vec_input = global_pose_vec_input[0]
+
+    #print(f"{data_name} Dataset Motion Features Dim: {global_pose_vec_input.shape}")
+
+    return global_pose_vec_input

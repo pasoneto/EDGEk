@@ -9,6 +9,11 @@ def create_dataset(type_feature, marker1 = None, marker2 = None, position_out = 
     
     if type_feature == "position" and (marker1 == None or marker2 == None): 
         raise ValueError("Specify marker numbers")
+    
+    if position_out:
+        print("Writting only positions")
+    else:
+        print("Writting angles and foot contact")
 
     slice_amass("../../../data/CoE/accel/amass/amass_full/DanceDB/", "../data/test/motions_sliced/", position_out=position_out)
     print("Finished test dataset")
@@ -25,7 +30,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--type_feature", default="accelerometer")
 parser.add_argument("--marker1", default=None)
 parser.add_argument("--marker2", default=None)
-parser.add_argument("--position_out", default=False)
+parser.add_argument("--position_out", action="store_true", help="Set to True to enable position output")
 
 opt = parser.parse_args()
 create_dataset(type_feature = opt.type_feature, marker1 = opt.marker1, marker2 = opt.marker2, position_out = opt.position_out)
