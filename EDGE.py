@@ -43,6 +43,8 @@ class EDGE:
         state = AcceleratorState()
         num_processes = state.num_processes
         
+        self.run_foot_loss = run_foot_loss
+
         if run_foot_loss:
             pos_dim = 3
             rot_dim = 24 * 6  # 24 joints, 6dof
@@ -57,8 +59,6 @@ class EDGE:
         self.horizon = horizon = horizon_seconds * FPS
 
         self.accelerator.wait_for_everyone()
-
-        self.run_foot_loss = run_foot_loss
 
         checkpoint = None
         if checkpoint_path != "":
@@ -93,6 +93,7 @@ class EDGE:
             use_p2=False,
             cond_drop_prob=0.25,
             guidance_weight=2,
+            run_foot_loss=self.run_foot_loss
         )
 
         print(

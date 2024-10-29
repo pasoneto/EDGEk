@@ -38,6 +38,9 @@ def parse_train_opt():
     parser.add_argument(
         "--checkpoint", type=str, default="", help="trained checkpoint path (optional)"
     )
+    parser.add_argument(
+        "--run_foot_loss", action="store_true", help="Compute foot contact loss"
+    )
     opt = parser.parse_args()
     return opt
 
