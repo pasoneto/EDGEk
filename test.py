@@ -47,14 +47,11 @@ def test(opt):
         juke_file_list = sorted(glob.glob(f"{d}/*.pkl"), key=stringintkey)
         assert len(file_list) == len(juke_file_list)
         # random chunk after sanity check
-        rand_idx = random.randint(0, len(file_list) - sample_size)
-        file_list = file_list[rand_idx : rand_idx + sample_size]
-        juke_file_list = juke_file_list[rand_idx : rand_idx + sample_size]
         cond_list = [np.load(x, allow_pickle=True) for x in juke_file_list]
         all_filenames.append(file_list)
         all_cond.append(torch.from_numpy(np.array(cond_list)))
     
-    directory_weight = "./weights/train-redo-12000.pt"
+    directory_weight = "./weights/train-redo-14400.pt"
     model = EDGE(opt.feature_type, directory_weight)
     model.eval()
 

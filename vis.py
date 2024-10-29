@@ -334,7 +334,7 @@ def smplToPosition(q, pos, scale, aist = True):
     return positions, rotations
 
 
-def visu(positions, sr):
+def visu_single(positions, sr):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
     from matplotlib.animation import FuncAnimation
@@ -399,13 +399,160 @@ def visu(positions, sr):
 
     plt.show()
 
-#f = "/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/motions_sliced/CLIO_Zorbas_poses_slice14.pkl"
-#a = np.load(f, allow_pickle=True)
-#visu(a, 30)
-#f = "/Users/pdealcan/Downloads/1_0_CLIO_Pastirske_poses_slice7.pkl"
-#a = np.load(f, allow_pickle=True)
-#[print(b) for b in a]
+def visu_double(position1, position2, sr):
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.animation import FuncAnimation
+    import numpy as np
+
+    # Define some shared variables
+    N = position1.shape[0]  # number of timesteps
+    M = int(position1.shape[1])  # number of markers
+
+    # Create a figure with two subplots
+    fig = plt.figure(figsize=(12, 6))
+    ax1 = fig.add_subplot(121, projection='3d')
+    ax2 = fig.add_subplot(122, projection='3d')
+
+    # Initialize lines and markers for each plot
+    lines1 = [ax1.plot([], [], [])[0] for _ in range(M)]
+    markers1 = [ax1.plot([], [], [], marker='o', color='blue')[0] for _ in range(M)]
+    lines2 = [ax2.plot([], [], [])[0] for _ in range(M)]
+    markers2 = [ax2.plot([], [], [], marker='o', color='green')[0] for _ in range(M)]
+    
+    # Highlight specific markers
+    for i in [7, 8, 10, 11, M - 2, M - 1, 16, 17]:
+        markers1[i].set_markerfacecolor('red')
+        markers2[i].set_markerfacecolor('red')
+
+    # Initialize bones for each plot (connections between parent-child joints)
+    bones1 = [ax1.plot([], [], [], color='blue')[0] for _ in range(M) if smpl_parents[_] != -1]
+    bones2 = [ax2.plot([], [], [], color='green')[0] for _ in range(M) if smpl_parents[_] != -1]
+
+    # Set axis limits for both plots
+    for ax in [ax1, ax2]:
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(-1, 1)
+        ax.set_zlim(-1, 1)
+
+    # Animation function to update the plot
+    def update(frame):
+        for i in range(M):
+            # Update marker positions for position1
+            x1, y1, z1 = position1[frame, i]
+            lines1[i].set_data([x1], [y1])
+            lines1[i].set_3d_properties([z1])
+            markers1[i].set_data([x1], [y1])
+            markers1[i].set_3d_properties([z1])
+            
+            # Update marker positions for position2
+            x2, y2, z2 = position2[frame, i]
+            lines2[i].set_data([x2], [y2])
+            lines2[i].set_3d_properties([z2])
+            markers2[i].set_data([x2], [y2])
+            markers2[i].set_3d_properties([z2])
+            
+            # Draw bones for position1
+            if smpl_parents[i] != -1:
+                parent_idx = smpl_parents[i]
+                px1, py1, pz1 = position1[frame, parent_idx]
+                bones1[i-1].set_data([x1, px1], [y1, py1])
+                bones1[i-1].set_3d_properties([z1, pz1])
+
+            # Draw bones for position2
+            if smpl_parents[i] != -1:
+                px2, py2, pz2 = position2[frame, parent_idx]
+                bones2[i-1].set_data([x2, px2], [y2, py2])
+                bones2[i-1].set_3d_properties([z2, pz2])
+        
+        return lines1 + markers1 + bones1 + lines2 + markers2 + bones2
+
+    # Create animation
+    fr = sr
+    interval = 1000 / fr
+    ani = FuncAnimation(fig, update, frames=N, blit=True, interval=interval)
+
+    plt.show()
+
+def visu_2d(position1, position2, sr):
+    import matplotlib.pyplot as plt
+    from matplotlib.animation import FuncAnimation
+    import numpy as np
+
+    # Define shared variables
+    N = position1.shape[0]  # number of timesteps
+    M = int(position1.shape[1])  # number of markers
+
+    # Create a figure with two subplots
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+
+    # Initialize lines and markers for each plot
+    lines1 = [ax1.plot([], [])[0] for _ in range(M)]
+    markers1 = [ax1.plot([], [], marker='o', color='blue')[0] for _ in range(M)]
+    lines2 = [ax2.plot([], [])[0] for _ in range(M)]
+    markers2 = [ax2.plot([], [], marker='o', color='green')[0] for _ in range(M)]
+
+    # Highlight specific markers
+    for i in [7, 8, 10, 11, M - 2, M - 1]:
+        markers1[i].set_markerfacecolor('red')
+        markers2[i].set_markerfacecolor('red')
+
+    # Initialize bones for each plot (connections between parent-child joints)
+    bones1 = [ax1.plot([], [], color='blue')[0] for _ in range(M) if smpl_parents[_] != -1]
+    bones2 = [ax2.plot([], [], color='green')[0] for _ in range(M) if smpl_parents[_] != -1]
+
+    # Set axis limits for both plots
+    for ax in [ax1, ax2]:
+        ax.set_xlim(-1, 1)
+        ax.set_ylim(-1, 1)
+        ax.set_xlabel("Y")
+        ax.set_ylabel("Z")
+
+    # Animation function to update the plot
+    def update(frame):
+        for i in range(M):
+            # Update marker positions for position1
+            y1, z1 = position1[frame, i, 1], position1[frame, i, 2]
+            lines1[i].set_data([y1], [z1])
+            markers1[i].set_data([y1], [z1])
+
+            # Update marker positions for position2
+            y2, z2 = position2[frame, i, 1], position2[frame, i, 2]
+            lines2[i].set_data([y2], [z2])
+            markers2[i].set_data([y2], [z2])
+
+            # Draw bones for position1
+            if smpl_parents[i] != -1:
+                parent_idx = smpl_parents[i]
+                py1, pz1 = position1[frame, parent_idx, 1], position1[frame, parent_idx, 2]
+                bones1[i-1].set_data([y1, py1], [z1, pz1])
+
+            # Draw bones for position2
+            if smpl_parents[i] != -1:
+                py2, pz2 = position2[frame, parent_idx, 1], position2[frame, parent_idx, 2]
+                bones2[i-1].set_data([y2, py2], [z2, pz2])
+
+        return lines1 + markers1 + bones1 + lines2 + markers2 + bones2
+
+    # Create animation
+    fr = sr
+    interval = 1000 / fr
+    ani = FuncAnimation(fig, update, frames=N, blit=True, interval=interval)
+
+    plt.show()
+
+
+base_name = "CLIO_Roditikos_poses_slice5"
+og = f"/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/motions_sliced/{base_name}.pkl"
+og = np.load(og, allow_pickle=True)
+
+pred = f"/Users/pdealcan/Downloads/14400_1_{base_name}.pkl"
+pred = np.load(pred, allow_pickle=True)
+pred = pred['full_pose'].reshape(300, 24, 3)
+
+#og = rotate_front(og)
+#pred = rotate_front(pred)
+
 #positions, _ = smplToPosition(a['q'], a['pos'], 1, aist = False)
 #positions = positions[0]
-#positions = a['full_pose'].reshape(300, 24, 3)
-#visu(positions, 30)
+visu_2d(og, pred, 30)
