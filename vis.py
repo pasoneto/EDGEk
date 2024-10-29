@@ -542,17 +542,17 @@ def visu_2d(position1, position2, sr):
     plt.show()
 
 
-base_name = "CLIO_Roditikos_poses_slice5"
-og = f"/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/motions_sliced/{base_name}.pkl"
-og = np.load(og, allow_pickle=True)
+#base_name = "CLIO_Roditikos_poses_slice5"
+#og = f"/Users/pdealcan/Documents/github/edge_redo/EDGEk/data/test/motions_sliced/{base_name}.pkl"
+#og = np.load(og, allow_pickle=True)
 
-pred = f"/Users/pdealcan/Downloads/14400_1_{base_name}.pkl"
-pred = np.load(pred, allow_pickle=True)
-pred = pred['full_pose'].reshape(300, 24, 3)
+#pred = f"/Users/pdealcan/Downloads/14400_1_{base_name}.pkl"
+#pred = np.load(pred, allow_pickle=True)
+#pred = pred['full_pose'].reshape(300, 24, 3)
 
 #og = rotate_front(og)
 #pred = rotate_front(pred)
 
 #positions, _ = smplToPosition(a['q'], a['pos'], 1, aist = False)
 #positions = positions[0]
-visu_2d(og, pred, 30)
+#visu_2d(og, pred, 30)
