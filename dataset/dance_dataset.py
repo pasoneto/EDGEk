@@ -43,6 +43,14 @@ class AISTPPDataset(Dataset):
         self.normalizer = normalizer
         self.data_len = data_len
 
+        backup_path = Path(backup_path)
+        backup_path.mkdir(parents=True, exist_ok=True)
+        # save normalizer
+        if not train:
+            pickle.dump(
+                normalizer, open(os.path.join(backup_path, "normalizer.pkl"), "wb")
+            )
+
         print("Loading dataset...")
         data = self.load_aistpp()  # Call this last
 
@@ -102,9 +110,8 @@ class AISTPPDataset(Dataset):
             assert m_name == f_name, str((motion, feature))
             # load motion
             data = pickle.load(open(motion, "rb"))
-            print(data.shape)
-            #data = data.reshape(data.shape[0], data.shape[1]*data.shape[2]) #### PROBLEM HERE. CHECK THE SHAPE OF RECEIVED MOTION
-            #I dont think I need to reshape above
+            #data = data.reshape(data.shape[0], data.shape[1]*data.shape[2]) 
+            #If position is out, i need to reshape
             all_pos.append(data)
             all_names.append(feature)
 
@@ -126,10 +133,6 @@ class AISTPPDataset(Dataset):
 
         assert not torch.isnan(global_pose_vec_input).any()
         data_name = "Train" if self.train else "Test"
-
-        # cut the dataset
-        if self.data_len > 0:
-            global_pose_vec_input = global_pose_vec_input[: self.data_len]
 
         global_pose_vec_input = global_pose_vec_input
 

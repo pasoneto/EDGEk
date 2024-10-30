@@ -626,3 +626,10 @@ if False:
     print(name)
 #    visu_double(og, pred, 30)
     visu_single(og, 30)
+
+if False:
+    name = "/Users/pdealcan/Downloads/2_0_ANDREAS_Hasaposerviko_poses_slice6.pkl"
+    f = np.load(name, allow_pickle=True)
+    f = f['full_pose']
+    visu_single(f, 30)
+
