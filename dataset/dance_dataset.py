@@ -102,7 +102,9 @@ class AISTPPDataset(Dataset):
             assert m_name == f_name, str((motion, feature))
             # load motion
             data = pickle.load(open(motion, "rb"))
-            data = data.reshape(data.shape[0], data.shape[1]*data.shape[2])
+            print(data.shape)
+            #data = data.reshape(data.shape[0], data.shape[1]*data.shape[2]) #### PROBLEM HERE. CHECK THE SHAPE OF RECEIVED MOTION
+            #I dont think I need to reshape above
             all_pos.append(data)
             all_names.append(feature)
 
