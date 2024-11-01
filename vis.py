@@ -610,26 +610,36 @@ if False:
     name = video_list['videos'][index_video]
 
     real = f"{test_path}{name}.pkl"
-#    pred = f"{pred_path}{name}.pkl"
+    pred = f"{pred_path}{name}.pkl"
 
     og = np.load(real, allow_pickle=True)
-#    pred = np.load(pred, allow_pickle=True)
+    pred = np.load(pred, allow_pickle=True)
 
-#    pred = pred['full_pose'].reshape(300, 24, 3)
+    pred = pred['full_pose'].reshape(300, 24, 3)
     if angle_out:
         og = remove_foot_contact_and_fk(og)
     else:
         pass
 
     og = toFront(og, 16, 17)
-#    pred = toFront(pred, 16, 17)
+    pred = toFront(pred, 16, 17)
     print(name)
-#    visu_double(og, pred, 30)
-    visu_single(og, 30)
+    visu_2d(og, pred, 30)
+    #visu_single(og, 30)
 
-if False:
-    name = "/Users/pdealcan/Downloads/2_0_ANDREAS_Hasaposerviko_poses_slice6.pkl"
-    f = np.load(name, allow_pickle=True)
-    f = f['full_pose']
-    visu_single(f, 30)
+if True:
+    name = "Fanie_Zumba_C3D_poses_slice13"
+    namePred = f"/Users/pdealcan/Downloads/4000_0_{name}.pkl"
+    pred = np.load(namePred, allow_pickle=True)
+    pred = pred['full_pose']
+
+    nameReal = f"./data/test/motions_sliced/{name}.pkl"
+    real = np.load(nameReal, allow_pickle=True)
+    real = remove_foot_contact_and_fk(real)
+
+    print(pred.shape)
+    print(real.shape)
+
+    visu_2d(pred, real, 30)
+#    visu_single(real, 30)
 
