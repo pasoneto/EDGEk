@@ -52,7 +52,7 @@ def test(opt):
         all_cond.append(torch.from_numpy(np.array(cond_list)))
     
     directory_weight = "./weights/exp2-4000.pt"
-    model = EDGE(opt.feature_type, directory_weight)
+    model = EDGE(opt.feature_type, directory_weight, run_foot_loss=opt.run_foot_loss)
     model.eval()
 
     # directory for optionally saving the dances for eval

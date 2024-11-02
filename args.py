@@ -62,6 +62,9 @@ def parse_test_opt():
         "--checkpoint", type=str, default="checkpoint.pt", help="checkpoint"
     )
     parser.add_argument(
+        "--run_foot_loss", action="store_true", help="Compute foot contact loss"
+    )
+    parser.add_argument(
         "--music_dir",
         type=str,
         default="data/test/wavs",
