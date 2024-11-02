@@ -12,4 +12,4 @@ module load pytorch
 
 source /projappl/project_2009235/edge/bin/activate
 
-python3.9 test.py
+python3.9 test.py --run_foot_loss
