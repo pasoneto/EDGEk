@@ -12,4 +12,4 @@ module load pytorch
 
 source /projappl/project_2009235/edge/bin/activate
 
-python3.9 train.py --batch_size 128 --epochs 20000 --save_interval 100 --run_foot_loss
+python3.9 train.py --batch_size 128 --epochs 20000 --save_interval 100
