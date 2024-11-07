@@ -167,16 +167,14 @@ def feat_extract(motion_file_sliced, output_feats, feature_type = "accelerometer
 
     if position_out: #If only positions, second dimension needs to have 24 items
         assert motion.shape[1] == 24
-        positions = motion.reshape(300, 24*3)
+        positions = motion
     else: #If angles and contact second dimension needs to have 151 items (6dof + 4 from contact + 3 global rotation)
         assert motion.shape[1] == 151
         positions = remove_foot_contact_and_fk(motion)
 
-    assert positions.shape[1] == 24
-
     if feature_type == "accelerometer":
         IMUs = extractIMUs(positions)
-        motion_sliced = differentiate_fast(IMUs, 2, sr = 30) #right thigh, left wrist
+        motion_sliced = differentiate_fast(IMUs, 2, sr = 15) #right thigh, left wrist
     elif feature_type == "positions":
         motion_sliced = extract2Markers(positions, marker1 = [marker1], marker2 = [marker2])
     else:

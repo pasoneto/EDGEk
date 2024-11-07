@@ -8,11 +8,9 @@ from accel_extraction_funcs import center_mean, add_foot_contact
 
 from vis import smplToPosition
 
-def resample(q, pos, scale, sr):
-    newFreq = 30 #Determine sampling rate stride
+def resample(q, pos, sr):
+    newFreq = 15 #Determine sampling rate stride
     data_stride = int(sr //newFreq)
-
-    pos /= scale #Normalize root position
 
     #Resampling
     q = q[:: data_stride, :]
@@ -27,6 +25,7 @@ def slice_motion(motion_file, out_dir, aist, position_out):
         pos, q, scale = motion["trans"], motion["poses"], 1 #Maybe the inverse?
         pos = center_mean(pos)
         sr = motion['mocap_framerate'] 
+        assert sr == 120
         #Removing additional info that comes with amass (?)
         q = q.reshape((q.shape[0], -1, 3))
         q = q[:, 0:24, :]
@@ -34,15 +33,12 @@ def slice_motion(motion_file, out_dir, aist, position_out):
     else:
         motion = dict(np.load(f"{motion_file}", allow_pickle=True))
         pos, q, scale = motion['smpl_trans'], motion['smpl_poses'], motion['smpl_scaling']
+        pos /= scale #Normalize root position
         pos = center_mean(pos)
         sr = 60
 
-    #Resampling
-    q, pos = resample(q, pos, scale, sr)
-
     #Slicing
-    seconds = 10
-    sr = 30 #New sr
+    seconds = 5
     n_frames = pos.shape[0]
     rows = int(sr*seconds)
     num_chunks = int(n_frames / rows) #int() always rounds down, therefore we never get an unequal sample size
@@ -52,6 +48,10 @@ def slice_motion(motion_file, out_dir, aist, position_out):
         pos_slice = pos[i * rows : (i + 1) * rows, :]
         pos_slice = np.float32(pos_slice)
         q_slice = np.float32(q_slice)
+
+        #Resampling
+        q_slice, pos_slice = resample(q_slice, pos_slice, sr)
+
         out = {"pos": pos_slice, "q": q_slice}
         if position_out:
             out, _ = smplToPosition(q_slice, pos_slice, 1, aist = aist)

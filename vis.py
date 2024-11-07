@@ -23,6 +23,12 @@ from dataset.quaternion import ax_from_6v
 
 from tqdm import tqdm
 
+def translate(df, offsets):
+    df[:,0:df.shape[1]:3] = df[:,0:df.shape[1]:3] + offsets[0];
+    df[:,1:df.shape[1]:3] = df[:,1:df.shape[1]:3] + offsets[1];
+    df[:,2:df.shape[1]:3] = df[:,2:df.shape[1]:3] + offsets[2];
+    return(df)
+
 smpl_joints = [
     "root",  # 0
     "lhip",  # 1
@@ -404,6 +410,7 @@ def visu_single(positions, sr):
 
     plt.show()
 
+
 def visu_double(position1, position2, sr):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
@@ -640,6 +647,16 @@ if False:
     print(pred.shape)
     print(real.shape)
 
-    visu_2d(pred, real, 30)
+#    visu_2d(pred, real, 30)
+#    visu_single(real, 30)
+
+if False:
+    name = f"./data/train/motions_sliced/gBR_sBM_cAll_d04_mBR1_ch01_slice0.pkl"
+    a = np.load(name, allow_pickle=True)
+
+    visu_single(a, 15)
+    
+
+#    visu_2d(pred, real, 30)
 #    visu_single(real, 30)
 

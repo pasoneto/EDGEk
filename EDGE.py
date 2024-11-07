@@ -54,8 +54,8 @@ class EDGE:
 
         feature_dim = 147
 
-        horizon_seconds = 10
-        FPS = 30
+        horizon_seconds = 5
+        FPS = 15
         self.horizon = horizon = horizon_seconds * FPS
 
         self.accelerator.wait_for_everyone()
