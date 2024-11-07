@@ -56,6 +56,7 @@ def slice_motion(motion_file, out_dir, aist, position_out):
         if position_out:
             out, _ = smplToPosition(q_slice, pos_slice, 1, aist = aist)
             out = out[0]
+            out = out.reshape(-1, 24*3)
         else:
             out = add_foot_contact(pos_slice, q_slice, aist = aist)
         pickle.dump(out, open(f"{out_dir}/{file_name}_slice{i}.pkl", "wb"))

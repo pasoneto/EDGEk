@@ -40,7 +40,6 @@ def center_mean(df):
     df = translate(df, [-x, -y, -z]);
     return(df)
 
-
 def create_middle_marker(positions, indices):
     r"""
     Create a virtual marker between two other markers. 
@@ -164,9 +163,11 @@ def extractFeats(acceleration_data, windowLength):
 def feat_extract(motion_file_sliced, output_feats, feature_type = "accelerometer", marker1 = None, marker2 = None, position_out = False, aist = True):
     file_name = os.path.splitext(os.path.basename(motion_file_sliced))[0]
     motion = np.load(motion_file_sliced, allow_pickle=True)
+    
+    motion = motion.reshape(-1, 24, 3)
 
     if position_out: #If only positions, second dimension needs to have 24 items
-        assert motion.shape[1] == 24
+#        assert motion.shape[1] == 24
         positions = motion
     else: #If angles and contact second dimension needs to have 151 items (6dof + 4 from contact + 3 global rotation)
         assert motion.shape[1] == 151

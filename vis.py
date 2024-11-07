@@ -650,11 +650,17 @@ if False:
 #    visu_2d(pred, real, 30)
 #    visu_single(real, 30)
 
-if False:
+if True:
     name = f"./data/train/motions_sliced/gBR_sBM_cAll_d04_mBR1_ch01_slice0.pkl"
     a = np.load(name, allow_pickle=True)
 
-    visu_single(a, 15)
+    name = f"./data/test/motions_sliced/CLIO_Kolo_poses_slice1.pkl"
+    b = np.load(name, allow_pickle=True)
+
+    print(a.shape)
+    print(b.shape)
+    
+#    visu_single(a, 15)
     
 
 #    visu_2d(pred, real, 30)
