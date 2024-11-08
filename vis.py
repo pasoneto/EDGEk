@@ -647,7 +647,7 @@ if False:
     visu_2d(og, pred, 30)
     #visu_single(og, 30)
 
-if True:
+if False:
     name = "CLIO_Outsai_poses_slice9"
     namePred = f"/Users/pdealcan/Downloads/6800_0_{name}.pkl"
     pred = np.load(namePred, allow_pickle=True)
