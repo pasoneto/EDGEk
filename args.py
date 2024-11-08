@@ -15,11 +15,7 @@ def parse_train_opt():
     parser.add_argument(
         "--render_dir", type=str, default="renders/", help="Sample render path"
     )
-
-    parser.add_argument(
-        "--epoch_weight", type=str, default="1000", help="weight epoch to use"
-    )
-    
+ 
     parser.add_argument("--feature_type", type=str, default="jukebox")
     parser.add_argument(
         "--wandb_pj_name", type=str, default="EDGE", help="project name"
@@ -103,6 +99,9 @@ def parse_test_opt():
         type=str,
         default="cached_features/",
         help="Where to save/load the features",
+    )
+    parser.add_argument(
+        "--epoch_weight", type=str, default="1000", help="weight epoch to use"
     )
     opt = parser.parse_args()
     return opt
