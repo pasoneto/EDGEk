@@ -23,11 +23,7 @@ from dataset.quaternion import ax_from_6v
 
 from tqdm import tqdm
 
-def translate(df, offsets):
-    df[:,0:df.shape[1]:3] = df[:,0:df.shape[1]:3] + offsets[0];
-    df[:,1:df.shape[1]:3] = df[:,1:df.shape[1]:3] + offsets[1];
-    df[:,2:df.shape[1]:3] = df[:,2:df.shape[1]:3] + offsets[2];
-    return(df)
+from scipy.interpolate import interp1d
 
 smpl_joints = [
     "root",  # 0
@@ -172,6 +168,23 @@ def plot_single_pose(num, poses, lines, ax, axrange, scat, contact):
         ax.set_xlim(x_min, x_max)
         ax.set_ylim(y_min, y_max)
         ax.set_zlim(z_min, z_max)
+
+def upsample_matrix(matrix, sr, target_sr):
+    # Calculate the time axis for the original matrix and target matrix
+    n_samples, n_features = matrix.shape
+    original_time = np.linspace(0, n_samples / sr, n_samples)
+    target_n_samples = int(n_samples * (target_sr / sr))
+    target_time = np.linspace(0, n_samples / sr, target_n_samples)
+
+    # Initialize the upsampled matrix
+    upsampled_matrix = np.zeros((target_n_samples, n_features))
+
+    # Interpolate each feature (column) independently
+    for i in range(n_features):
+        interpolator = interp1d(original_time, matrix[:, i], kind='linear')
+        upsampled_matrix[:, i] = interpolator(target_time)
+
+    return upsampled_matrix
 
 
 def skeleton_render(
@@ -634,30 +647,38 @@ if False:
     visu_2d(og, pred, 30)
     #visu_single(og, 30)
 
-if False:
-    name = "Fanie_Zumba_C3D_poses_slice13"
-    namePred = f"/Users/pdealcan/Downloads/4000_0_{name}.pkl"
+if True:
+    name = "CLIO_Outsai_poses_slice9"
+    namePred = f"/Users/pdealcan/Downloads/6800_0_{name}.pkl"
     pred = np.load(namePred, allow_pickle=True)
     pred = pred['full_pose']
 
     nameReal = f"./data/test/motions_sliced/{name}.pkl"
-    real = np.load(nameReal, allow_pickle=True)
-    real = remove_foot_contact_and_fk(real)
+    real = np.load(nameReal, allow_pickle=True).numpy()
+#    real = remove_foot_contact_and_fk(real)
 
     print(pred.shape)
     print(real.shape)
 
-#    visu_2d(pred, real, 30)
+    pred = upsample_matrix(pred, 15, 30)
+    real = upsample_matrix(real, 15, 30)
+
+    pred = pred.reshape(-1, 24, 3)
+    real = real.reshape(-1, 24, 3)
+
+    visu_2d(pred, real, 30)
 #    visu_single(real, 30)
 
-if True:
-    name = f"./data/train/motions_sliced/gBR_sBM_cAll_d04_mBR1_ch01_slice0.pkl"
-    a = np.load(name, allow_pickle=True)
+if False:
+#    name = f"./data/train/motions_sliced/gBR_sBM_cAll_d04_mBR1_ch01_slice0.pkl"
+#    a = np.load(name, allow_pickle=True)
 
-    name = f"./data/test/motions_sliced/CLIO_Kolo_poses_slice1.pkl"
-    b = np.load(name, allow_pickle=True)
+#    name = f"./data/test/motions_sliced/CLIO_Kolo_poses_slice1.pkl"
+#    b = np.load(name, allow_pickle=True).numpy()
 
-    print(a.shape)
+    name = f"./generated_dances/4800_1_Vasso_Bachata_01_poses_slice4.pkl"
+    b = np.load(name, allow_pickle=True)['full_pose']
+    
     print(b.shape)
     
 #    visu_single(a, 15)

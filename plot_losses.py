@@ -53,9 +53,9 @@ axs[2].plot(sorted_numbers, fk_losses_sorted, label="FK Loss", color="r")
 axs[2].set_ylabel("FK Loss")
 axs[2].legend()
 
-for ax in axs:
-    ax.set_ylim(0, 0.02)
-    ax.legend()
+#for ax in axs:
+#    ax.set_ylim(0, 0.02)
+#    ax.legend()
 
 plt.suptitle("Losses over File Number")
 plt.show()

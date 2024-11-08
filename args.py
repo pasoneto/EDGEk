@@ -16,6 +16,10 @@ def parse_train_opt():
         "--render_dir", type=str, default="renders/", help="Sample render path"
     )
 
+    parser.add_argument(
+        "--epoch_weight", type=str, default="1000", help="weight epoch to use"
+    )
+    
     parser.add_argument("--feature_type", type=str, default="jukebox")
     parser.add_argument(
         "--wandb_pj_name", type=str, default="EDGE", help="project name"
