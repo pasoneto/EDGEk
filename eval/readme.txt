@@ -19,4 +19,12 @@
   - weight asociated: experiment3.pt
   - description: predict position from accelerometer, but with smaller window (5 seconds) and smaller fps: 15.
 
+#Experiment 4
+  - commit for running (EDGE redo branch)
+  - run python3 create_dataset.py --position_out
+  - python3.9 train.py --batch_size 128 --epochs 20000 --save_interval 100
+  - weight asociated: experiment4.pt
+  - description: predict position from accelerometer, but with a bit longer window (10 seconds) and smaller fps: 15.
+
+
 
