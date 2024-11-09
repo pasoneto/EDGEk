@@ -617,9 +617,9 @@ def remove_foot_contact_and_fk(og):
     p = p[0]
     return(p)
 
-angle_out = True
+angle_out = False
 if False:
-    pred_path = "./generated_dances/"
+    pred_path = "./generated_dances/exp3_epoch_7600/"
     test_path = "./data/test/motions_sliced/"
     base_files = glob.glob(f"{test_path}/*.pkl")
 
@@ -633,17 +633,21 @@ if False:
     pred = f"{pred_path}{name}.pkl"
 
     og = np.load(real, allow_pickle=True)
-    pred = np.load(pred, allow_pickle=True)
+    pred = np.load(pred, allow_pickle=True)['full_pose']
 
-    pred = pred['full_pose'].reshape(300, 24, 3)
+    og = upsample_matrix(og, 15, 30)
+    pred = upsample_matrix(pred, 15, 30)
+
+    og = og.reshape(-1, 24, 3)
+    pred = pred.reshape(-1, 24, 3)
     if angle_out:
         og = remove_foot_contact_and_fk(og)
     else:
         pass
 
-    og = toFront(og, 16, 17)
-    pred = toFront(pred, 16, 17)
-    print(name)
+#    og = toFront(og, 16, 17)
+#    pred = toFront(pred, 16, 17)
+#    print(name)
     visu_2d(og, pred, 30)
     #visu_single(og, 30)
 

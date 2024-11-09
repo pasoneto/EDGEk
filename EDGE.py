@@ -54,7 +54,7 @@ class EDGE:
 
         feature_dim = 147
 
-        horizon_seconds = 5
+        horizon_seconds = 10
         FPS = 15
         self.horizon = horizon = horizon_seconds * FPS
 
@@ -259,7 +259,7 @@ class EDGE:
 
                     with open(f"./loss/exp3_loss-redo-{epoch}.txt", "w") as fp:
                         json.dump(log_dict, fp) 
-                    torch.save(ckpt, f"./weights/exp3-{epoch}.pt")
+                    torch.save(ckpt, f"./weights/exp4-{epoch}.pt")
 
                     # generate a sample
                     render_count = 2
