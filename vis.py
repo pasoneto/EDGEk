@@ -651,9 +651,9 @@ if False:
     visu_2d(og, pred, 30)
     #visu_single(og, 30)
 
-if False:
-    name = "CLIO_Outsai_poses_slice9"
-    namePred = f"/Users/pdealcan/Downloads/6800_0_{name}.pkl"
+if True:
+    name = "CLIO_Laziotikos_poses_slice1"
+    namePred = f"/Users/pdealcan/Downloads/5000_0_{name}.pkl"
     pred = np.load(namePred, allow_pickle=True)
     pred = pred['full_pose']
 
@@ -670,7 +670,7 @@ if False:
     pred = pred.reshape(-1, 24, 3)
     real = real.reshape(-1, 24, 3)
 
-    visu_2d(pred, real, 30)
+    visu_double(pred, real, 30)
 #    visu_single(real, 30)
 
 if False:

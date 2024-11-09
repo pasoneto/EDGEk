@@ -13,14 +13,14 @@
   - description: predict angles from accelerometer. foot slide loss, 30fps, 10 seconds. Full feature set. Results worse than exp1.
 
 #Experiment 3
-  - commit for running (EDGE redo branch)
+  - commit for running 523a04f2230a61cfe99456f5e74c775bf0c09cc7 (EDGE redo branch)
   - run python3 create_dataset.py --position_out
   - python3.9 train.py --batch_size 128 --epochs 20000 --save_interval 100
   - weight asociated: experiment3.pt
   - description: predict position from accelerometer, but with smaller window (5 seconds) and smaller fps: 15.
 
 #Experiment 4
-  - commit for running (EDGE redo branch)
+  - commit for running 0860062 (EDGE redo branch)
   - run python3 create_dataset.py --position_out
   - python3.9 train.py --batch_size 128 --epochs 20000 --save_interval 100
   - weight asociated: experiment4.pt
