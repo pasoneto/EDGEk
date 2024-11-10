@@ -5,33 +5,38 @@ from random import randint
 from tqdm import tqdm
 
 # Set paths
-folders = os.listdir('../generated_dances/experiment4/')
+exp_number = 4
+folders = os.listdir(f'../generated_dances/experiment{exp_number}/')
 
 # List of marker names
 list_of_names = ['root', 'rhip', 'lhip', 'belly', 'rknee', 'lknee', 'lchest', 'rankle', 'lankle', 'upchest', 
                  'rtoe', 'ltoe', 'neck', 'rclavicle', 'lclavicle', 'head', 'rshoulder', 'lshoulder', 
                  'relbow', 'lelbow', 'rwrist', 'lwrist', 'rhand', 'lhand']
-
 # Generate marker names with appended numbers
 markerNames = [f"{name}{i}" for name in list_of_names for i in range(1, 4)]
-controls = [False, True]
+controls = [True, False]
 for l in folders:
-    predicted_files = os.listdir(f'../generated_dances/experiment4/{l}')
+    predicted_files = os.listdir(f'../generated_dances/experiment{exp_number}/{l}')
     for control in controls:
         all_files = []
         for k in tqdm(range(len(predicted_files)), desc="Processing files", unit="file"):
-            nameChosen = predicted_files[k]
+            pred_file = predicted_files[k]
+            pred_path = os.path.join(f'../generated_dances/experiment{exp_number}/{l}', pred_file)
             if control:
                 index = randint(0, len(predicted_files) - 1)
-                nameChosenRandom = predicted_files[index]
-#                nameChosenRandomReal = "_".join(nameChosenRandom.split("_")[2:])
-                True_path = os.path.join('../data/test/motions_sliced', nameChosenRandom)
-                pred_path = os.path.join(f'../generated_dances/experiment4/{l}', nameChosenRandom)
+                randomFile = predicted_files[index]
+                randomFile = "_".join(randomFile.split("_")[2:])
+                True_path = os.path.join('../data/test/motions_sliced', randomFile)
+#                print(randomFile)
+#                print(pred_file)
+#                assert "_".join(pred_file.split("_")[2:]) != randomFile
             else:
-#                realName = "_".join(nameChosen.split("_")[2:])
-                True_path = os.path.join('../data/test/motions_sliced', nameChosen)
-                pred_path = os.path.join(f'../generated_dances/experiment4/{l}', nameChosen)
-            
+                realName = "_".join(pred_file.split("_")[2:])
+                True_path = os.path.join('../data/test/motions_sliced', realName)
+                assert "_".join(pred_file.split("_")[2:]) == realName
+#                print(realName)
+#                print(pred_file)
+
             True_data = np.load(True_path, allow_pickle=True).numpy()
             pred_data = np.load(pred_path, allow_pickle=True)['full_pose']
 
@@ -56,7 +61,7 @@ for l in folders:
             
             gtc_case = pd.DataFrame([[first_dimension, second_dimension, third_dimension]], 
                                     columns=["gtc_first", "gtc_second", "gtc_third"])
-            gtc_case['file'] = nameChosen
+            gtc_case['file'] = pred_file
             gtc_case['condition'] = "control" if control else "experiment"
 
             objective_measure_case = pd.concat([mpe_case, gtc_case], axis=1)
@@ -67,7 +72,7 @@ for l in folders:
         combined_table['experiment_run'] = l
 
         # Set output file path based on control flag
-        output_filename = f"./eval_data/objective_eval_exp4/objective_measure_control_{l}.csv" if control else \
-                          f"./eval_data/objective_eval_exp4/objective_measure_experimental_{l}.csv"
+        output_filename = f"./eval_data/objective_eval_exp{exp_number}/objective_measure_control_{l}.csv" if control else \
+                          f"./eval_data/objective_eval_exp{exp_number}/objective_measure_experimental_{l}.csv"
         combined_table.to_csv(output_filename, index=False)
         print(f"Ended folder: {l}")

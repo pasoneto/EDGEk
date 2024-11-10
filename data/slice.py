@@ -38,7 +38,7 @@ def slice_motion(motion_file, out_dir, aist, position_out):
         sr = 60
 
     #Slicing
-    seconds = 10
+    seconds = 5
     n_frames = pos.shape[0]
     rows = int(sr*seconds)
     num_chunks = int(n_frames / rows) #int() always rounds down, therefore we never get an unequal sample size
