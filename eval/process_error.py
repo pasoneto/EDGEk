@@ -5,7 +5,7 @@ from random import randint
 from tqdm import tqdm
 
 # Set paths
-exp_number = 4
+exp_number = 3
 folders = os.listdir(f'../generated_dances/experiment{exp_number}/')
 
 # List of marker names
@@ -26,13 +26,13 @@ for l in folders:
                 index = randint(0, len(predicted_files) - 1)
                 randomFile = predicted_files[index]
                 randomFile = "_".join(randomFile.split("_")[2:])
-                True_path = os.path.join('../data/test/motions_sliced', randomFile)
+                True_path = os.path.join(f'../data/test_exp{exp_number}/motions_sliced', randomFile)
 #                print(randomFile)
 #                print(pred_file)
 #                assert "_".join(pred_file.split("_")[2:]) != randomFile
             else:
                 realName = "_".join(pred_file.split("_")[2:])
-                True_path = os.path.join('../data/test/motions_sliced', realName)
+                True_path = os.path.join(f'../data/test_exp{exp_number}/motions_sliced', realName)
                 assert "_".join(pred_file.split("_")[2:]) == realName
 #                print(realName)
 #                print(pred_file)
