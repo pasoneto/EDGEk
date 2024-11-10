@@ -12,7 +12,7 @@ module load pytorch
 
 source /projappl/project_2009235/edge/bin/activate
 
-#python3.9 test.py --epoch_weight 1000
-#python3.9 test.py --epoch_weight 4100
-#python3.9 test.py --epoch_weight 7600
-python3.9 test.py --epoch_weight 10700
+python3.9 test.py --epoch_weight 1000
+python3.9 test.py --epoch_weight 4100
+python3.9 test.py --epoch_weight 7600
+#python3.9 test.py --epoch_weight 10700
