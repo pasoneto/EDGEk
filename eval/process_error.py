@@ -5,7 +5,7 @@ from random import randint
 from tqdm import tqdm
 
 # Set paths
-folders = os.listdir('../generated_dances/')
+folders = os.listdir('../generated_dances/experiment4/')
 
 # List of marker names
 list_of_names = ['root', 'rhip', 'lhip', 'belly', 'rknee', 'lknee', 'lchest', 'rankle', 'lankle', 'upchest', 
@@ -16,9 +16,7 @@ list_of_names = ['root', 'rhip', 'lhip', 'belly', 'rknee', 'lknee', 'lchest', 'r
 markerNames = [f"{name}{i}" for name in list_of_names for i in range(1, 4)]
 controls = [False, True]
 for l in folders:
-    predicted_files = os.listdir(f'../generated_dances/{l}')
-    true_files = os.listdir(f'../data/test/motions_sliced/')
-    
+    predicted_files = os.listdir(f'../generated_dances/experiment4/{l}')
     for control in controls:
         all_files = []
         for k in tqdm(range(len(predicted_files)), desc="Processing files", unit="file"):
@@ -26,13 +24,13 @@ for l in folders:
             if control:
                 index = randint(0, len(predicted_files) - 1)
                 nameChosenRandom = predicted_files[index]
-                nameChosenRandomReal = "_".join(nameChosenRandom.split("_")[2:])
-                True_path = os.path.join('../data/test/motions_sliced', nameChosenRandomReal)
-                pred_path = os.path.join(f'../generated_dances/{l}', nameChosenRandom)
+#                nameChosenRandomReal = "_".join(nameChosenRandom.split("_")[2:])
+                True_path = os.path.join('../data/test/motions_sliced', nameChosenRandom)
+                pred_path = os.path.join(f'../generated_dances/experiment4/{l}', nameChosenRandom)
             else:
-                realName = "_".join(nameChosen.split("_")[2:])
-                True_path = os.path.join('../data/test/motions_sliced', realName)
-                pred_path = os.path.join(f'../generated_dances/{l}', nameChosen)
+#                realName = "_".join(nameChosen.split("_")[2:])
+                True_path = os.path.join('../data/test/motions_sliced', nameChosen)
+                pred_path = os.path.join(f'../generated_dances/experiment4/{l}', nameChosen)
             
             True_data = np.load(True_path, allow_pickle=True).numpy()
             pred_data = np.load(pred_path, allow_pickle=True)['full_pose']
@@ -69,7 +67,7 @@ for l in folders:
         combined_table['experiment_run'] = l
 
         # Set output file path based on control flag
-        output_filename = f"./eval_data/objective_eval/objective_measure_control_{l}.csv" if control else \
-                          f"./eval_data/objective_eval/objective_measure_experimental_{l}.csv"
+        output_filename = f"./eval_data/objective_eval_exp4/objective_measure_control_{l}.csv" if control else \
+                          f"./eval_data/objective_eval_exp4/objective_measure_experimental_{l}.csv"
         combined_table.to_csv(output_filename, index=False)
         print(f"Ended folder: {l}")

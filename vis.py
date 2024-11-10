@@ -619,7 +619,7 @@ def remove_foot_contact_and_fk(og):
 
 angle_out = False
 if False:
-    pred_path = "./generated_dances/exp3_epoch_7600/"
+    pred_path = "./generated_dances/experiment4/exp4_epoch_4100/"
     test_path = "./data/test/motions_sliced/"
     base_files = glob.glob(f"{test_path}/*.pkl")
 
@@ -648,7 +648,7 @@ if False:
 #    og = toFront(og, 16, 17)
 #    pred = toFront(pred, 16, 17)
 #    print(name)
-    visu_2d(og, pred, 30)
+    visu_double(og, pred, 30)
     #visu_single(og, 30)
 
 if False:
