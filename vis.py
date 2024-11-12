@@ -618,7 +618,7 @@ def remove_foot_contact_and_fk(og):
     return(p)
 
 angle_out = False
-if True:
+if False:
     pred_path = "./generated_dances/experiment3/exp3_epoch_7600/"
     test_path = "./data/test_exp3/motions_sliced/"
     base_files = glob.glob(f"{test_path}/*.pkl")
