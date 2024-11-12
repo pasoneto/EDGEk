@@ -257,9 +257,9 @@ class EDGE:
                         "normalizer": self.normalizer,
                     }
 
-                    with open(f"./loss/exp3_loss-redo-{epoch}.txt", "w") as fp:
+                    with open(f"./loss/exp5_loss-redo-{epoch}.txt", "w") as fp:
                         json.dump(log_dict, fp) 
-                    torch.save(ckpt, f"./weights/exp4-{epoch}.pt")
+                    torch.save(ckpt, f"./weights/exp5-{epoch}.pt")
 
                     # generate a sample
                     render_count = 2
