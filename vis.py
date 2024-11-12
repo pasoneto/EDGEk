@@ -618,38 +618,57 @@ def remove_foot_contact_and_fk(og):
     return(p)
 
 angle_out = False
-if False:
-    pred_path = "./generated_dances/experiment4/exp4_epoch_4100/"
-    test_path = "./data/test/motions_sliced/"
+if True:
+    pred_path = "./generated_dances/experiment3/exp3_epoch_7600/"
+    test_path = "./data/test_exp3/motions_sliced/"
     base_files = glob.glob(f"{test_path}/*.pkl")
 
     # Convert the list to a DataFrame
     video_list = pd.read_csv("./eval/rendered_videos.csv")
-    index_video = np.random.randint(0, len(video_list.index))
+    
+    all_og = []
+    all_pred = []
+    for k in range(len(video_list)):
+#        index_video = np.random.randint(0, len(video_list.index))
 
-    name = video_list['videos'][index_video]
+        name = video_list['videos'][k]
 
-    real = f"{test_path}{name}.pkl"
-    pred = f"{pred_path}{name}.pkl"
+        real = f"{test_path}{name}.pkl"
+        pred = f"{pred_path}{name}.pkl"
 
-    og = np.load(real, allow_pickle=True)
-    pred = np.load(pred, allow_pickle=True)['full_pose']
+        og = np.load(real, allow_pickle=True)
+        pred = np.load(pred, allow_pickle=True)['full_pose']
+        og = og.reshape(-1, 24*3)
 
-    og = upsample_matrix(og, 15, 30)
-    pred = upsample_matrix(pred, 15, 30)
+        og = upsample_matrix(og, 15, 30)
+        pred = upsample_matrix(pred, 15, 30)
 
-    og = og.reshape(-1, 24, 3)
-    pred = pred.reshape(-1, 24, 3)
-    if angle_out:
-        og = remove_foot_contact_and_fk(og)
-    else:
-        pass
+    #    pred = pred.reshape(-1, 24, 3)
+        if angle_out:
+            og = remove_foot_contact_and_fk(og)
+        else:
+            pass
 
-#    og = toFront(og, 16, 17)
-#    pred = toFront(pred, 16, 17)
-#    print(name)
-    visu_double(og, pred, 30)
-    #visu_single(og, 30)
+    #    og = toFront(og, 16, 17)
+    #    pred = toFront(pred, 16, 17)
+    #    print(name)
+
+#        og = og.reshape(-1, 24, 3)
+#        pred = pred.reshape(-1, 24, 3)
+        all_og.append(og)
+        all_pred.append(pred)
+
+    all_og = np.concatenate(all_og)
+    all_pred = np.concatenate(all_pred)
+
+    all_og = all_og.reshape(-1, 24, 3)
+    all_pred = all_pred.reshape(-1, 24, 3)
+    
+    all_og[:, :, 2] = np.zeros([1, all_og.shape[0], 24])
+
+    visu_double(all_og, all_pred, 30)
+        #visu_single(og, 30)
+
 
 if False:
     name = "CLIO_Laziotikos_poses_slice1"
@@ -680,12 +699,9 @@ if False:
 #    name = f"./data/test/motions_sliced/CLIO_Kolo_poses_slice1.pkl"
 #    b = np.load(name, allow_pickle=True).numpy()
 
-    name = f"./generated_dances/4800_1_Vasso_Bachata_01_poses_slice4.pkl"
-    b = np.load(name, allow_pickle=True)['full_pose']
-    
-    print(b.shape)
-    
-#    visu_single(a, 15)
+    name = f"./data/test/motions_sliced/CLIO_Kolo_poses_slice9.pkl"
+    b = np.load(name, allow_pickle=True)
+    visu_single(b, 15)
     
 
 #    visu_2d(pred, real, 30)

@@ -22,9 +22,9 @@ def create_dataset(type_feature, marker1 = None, marker2 = None, position_out = 
 
     #process dataset to extract accel features
     print(f"Extracting {type_feature} features train")
-    extract_features("../data/train/motions_sliced/", "../data/train/features/", type_feature, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = True)
+    extract_features("../data/train/motions_sliced_accel/", "../data/train/features/", type_feature, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = True)
     print(f"Extracting {type_feature} features test")
-    extract_features("../data/test/motions_sliced/", "../data/test/features/", type_feature, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = False)
+    extract_features("../data/test/motions_sliced_accel/", "../data/test/features/", type_feature, marker1 = marker1, marker2 = marker2, position_out = position_out, aist = False)
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--type_feature", default="accelerometer")

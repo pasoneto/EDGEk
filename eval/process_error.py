@@ -3,6 +3,12 @@ import pandas as pd
 import numpy as np
 from random import randint
 from tqdm import tqdm
+import sys
+import torch
+
+sys.path.insert(1, '/Users/pdealcan/Documents/github/edge_redo/EDGEk/')
+
+from data.accel_extraction_funcs import remove_foot_contact_and_fk
 
 # Set paths
 exp_number = 3
@@ -12,6 +18,7 @@ folders = os.listdir(f'../generated_dances/experiment{exp_number}/')
 list_of_names = ['root', 'rhip', 'lhip', 'belly', 'rknee', 'lknee', 'lchest', 'rankle', 'lankle', 'upchest', 
                  'rtoe', 'ltoe', 'neck', 'rclavicle', 'lclavicle', 'head', 'rshoulder', 'lshoulder', 
                  'relbow', 'lelbow', 'rwrist', 'lwrist', 'rhand', 'lhand']
+
 # Generate marker names with appended numbers
 markerNames = [f"{name}{i}" for name in list_of_names for i in range(1, 4)]
 controls = [True, False]
@@ -25,20 +32,21 @@ for l in folders:
             if control:
                 index = randint(0, len(predicted_files) - 1)
                 randomFile = predicted_files[index]
-                randomFile = "_".join(randomFile.split("_")[2:])
+#                randomFile = "_".join(randomFile.split("_")[2:])
                 True_path = os.path.join(f'../data/test_exp{exp_number}/motions_sliced', randomFile)
-#                print(randomFile)
-#                print(pred_file)
-#                assert "_".join(pred_file.split("_")[2:]) != randomFile
             else:
-                realName = "_".join(pred_file.split("_")[2:])
+#                realName = "_".join(pred_file.split("_")[2:])
+                realName = pred_file
                 True_path = os.path.join(f'../data/test_exp{exp_number}/motions_sliced', realName)
-                assert "_".join(pred_file.split("_")[2:]) == realName
-#                print(realName)
-#                print(pred_file)
+                assert pred_file == realName
 
             True_data = np.load(True_path, allow_pickle=True).numpy()
             pred_data = np.load(pred_path, allow_pickle=True)['full_pose']
+            
+            if True_data.shape[1] == 151:
+                True_data = remove_foot_contact_and_fk(torch.from_numpy(True_data))
+                True_data = True_data.reshape(-1, 24*3).numpy()
+                pred_data = pred_data.reshape(-1, 24*3)
 
             # Placeholder class 'Dance' with attributes as per MATLAB equivalent
             trueD = True_data

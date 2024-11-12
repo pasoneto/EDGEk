@@ -4,7 +4,7 @@ import numpy as np
 from tqdm import tqdm
 import pandas as pd
 
-from accel_extraction_funcs import center_mean, add_foot_contact
+from accel_extraction_funcs import center_mean, add_foot_contact, differentiate_fast
 
 from vis import smplToPosition
 
@@ -30,36 +30,42 @@ def slice_motion(motion_file, out_dir, aist, position_out):
         q = q.reshape((q.shape[0], -1, 3))
         q = q[:, 0:24, :]
         q = q.reshape((q.shape[0], q.shape[1]*q.shape[2]))
+        q, pos = resample(q, pos, sr = sr)
     else:
         motion = dict(np.load(f"{motion_file}", allow_pickle=True))
         pos, q, scale = motion['smpl_trans'], motion['smpl_poses'], motion['smpl_scaling']
         pos /= scale #Normalize root position
         pos = center_mean(pos)
+        #Resampling
         sr = 60
+        q, pos = resample(q, pos, sr = sr)
+
+    #FK and differentiation
+    sr = 15
+    out, _ = smplToPosition(q, pos, 1, aist = aist)
+    out_pos = out[0]
+    out_accel = out[0]
+    out_accel = differentiate_fast(out_accel, order = 2, sr = sr)
 
     #Slicing
     seconds = 5
-    n_frames = pos.shape[0]
+    n_frames = out_accel.shape[0]
     rows = int(sr*seconds)
     num_chunks = int(n_frames / rows) #int() always rounds down, therefore we never get an unequal sample size
     init_sample = 0 if aist else 1  #Amass initiates with T pose. Cut off first sample
     for i in range(init_sample, num_chunks):
-        q_slice = q[i * rows : (i + 1) * rows, :]
-        pos_slice = pos[i * rows : (i + 1) * rows, :]
-        pos_slice = np.float32(pos_slice)
-        q_slice = np.float32(q_slice)
+        out_slice = out_accel[i * rows : (i + 1) * rows, :]
+        out_pos_slice = out_pos[i * rows : (i + 1) * rows, :] #same slice, but only position, no accel
+        out_slice = np.float32(out_slice)
+        out_pos_slice = np.float32(out_pos_slice)
 
-        #Resampling
-        q_slice, pos_slice = resample(q_slice, pos_slice, sr)
-
-        out = {"pos": pos_slice, "q": q_slice}
         if position_out:
-            out, _ = smplToPosition(q_slice, pos_slice, 1, aist = aist)
-            out = out[0]
-            out = out.reshape(-1, 24*3)
+            out_slice = out_slice.reshape(-1, 24*3)
         else:
-            out = add_foot_contact(pos_slice, q_slice, aist = aist)
-        pickle.dump(out, open(f"{out_dir}/{file_name}_slice{i}.pkl", "wb"))
+            pass 
+
+        pickle.dump(out_slice, open(f"{out_dir.replace('motions_sliced', 'motions_sliced_accel')}{file_name}_slice{i}.pkl", "wb"))
+        pickle.dump(out_pos_slice, open(f"{out_dir}/{file_name}_slice{i}.pkl", "wb"))
 
 def slice_amass(file_dir, out_dir, position_out):
     folders = os.listdir(f"{file_dir}")

@@ -174,8 +174,9 @@ def feat_extract(motion_file_sliced, output_feats, feature_type = "accelerometer
         positions = remove_foot_contact_and_fk(motion)
 
     if feature_type == "accelerometer":
-        IMUs = extractIMUs(positions)
-        motion_sliced = differentiate_fast(IMUs, 2, sr = 15) #right thigh, left wrist
+        IMUs = extractIMUs(torch.from_numpy(positions))
+#        motion_sliced = differentiate_fast(IMUs, 2, sr = 15) #right thigh, left wrist
+        motion_sliced = IMUs.numpy()
     elif feature_type == "positions":
         motion_sliced = extract2Markers(positions, marker1 = [marker1], marker2 = [marker2])
     else:
