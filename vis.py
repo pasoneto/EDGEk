@@ -670,14 +670,14 @@ if False:
         #visu_single(og, 30)
 
 
-if False:
-    name = "CLIO_Laziotikos_poses_slice1"
-    namePred = f"/Users/pdealcan/Downloads/5000_0_{name}.pkl"
+if True:
+    name = "Clio_Maleviziotikos_poses_slice3"
+    namePred = f"/Users/pdealcan/Downloads/11400_1_{name}.pkl"
     pred = np.load(namePred, allow_pickle=True)
     pred = pred['full_pose']
 
-    nameReal = f"./data/test/motions_sliced/{name}.pkl"
-    real = np.load(nameReal, allow_pickle=True).numpy()
+    nameReal = f"./data/test_exp5/motions_sliced/{name}.pkl"
+    real = np.load(nameReal, allow_pickle=True)
 #    real = remove_foot_contact_and_fk(real)
 
     print(pred.shape)

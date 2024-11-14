@@ -65,7 +65,7 @@ def slice_motion(motion_file, out_dir, aist, position_out):
             pass 
 
         pickle.dump(out_slice, open(f"{out_dir.replace('motions_sliced', 'motions_sliced_accel')}{file_name}_slice{i}.pkl", "wb"))
-        pickle.dump(out_pos_slice, open(f"{out_dir}/{file_name}_slice{i}.pkl", "wb"))
+        pickle.dump(out_pos_slice.reshape(-1, 24*3), open(f"{out_dir}/{file_name}_slice{i}.pkl", "wb"))
 
 def slice_amass(file_dir, out_dir, position_out):
     folders = os.listdir(f"{file_dir}")
