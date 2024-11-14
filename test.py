@@ -51,7 +51,7 @@ def test(opt):
         all_filenames.append(file_list)
         all_cond.append(torch.from_numpy(np.array(cond_list)))
     
-    directory_weight = f"./weights/exp5/exp5-{opt.epoch_weight}.pt"
+    directory_weight = f"./weights/exp5-{opt.epoch_weight}.pt"
     model = EDGE(opt.feature_type, directory_weight, run_foot_loss=opt.run_foot_loss)
     model.eval()
 
