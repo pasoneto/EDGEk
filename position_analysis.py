@@ -1,13 +1,20 @@
 from vis import *
 import matplotlib.pylab as plt
 from tqdm import tqdm
+import glob
+import numpy as np
+from scipy.cluster.hierarchy import linkage, leaves_list
+import pandas as pd
+import seaborn as sns
 
-files = glob.glob(f"./data/train_exp3/motions_sliced/*.pkl")
+files = glob.glob(f"./data/test_exp5/motions_sliced/*.pkl")
+files = glob.glob(f"./data/train_exp5/motions_sliced/*.pkl")
 
 def get_corr(f, dims):
     df = np.load(f, allow_pickle=True)
-    df = df.reshape(-1, 24, 3).numpy()
+    df = df.reshape(-1, 24, 3)#.numpy()
     if type(dims) == list: #Get average only if dims are more than one dimension
+        print("Getting  dims")
         df = np.vstack([np.sum(df[:, l, dims], axis = 1) for l in range(24)])
     else:
         df = np.vstack([df[:, l, dims] for l in range(24)])
@@ -21,37 +28,27 @@ list_of_names = ['root', 'rhip', 'lhip', 'belly', 'rknee', 'lknee', 'lchest', 'r
                  'rtoe', 'ltoe', 'neck', 'rclavicle', 'lclavicle', 'head', 'rshoulder', 'lshoulder', 
                  'relbow', 'lelbow', 'rwrist', 'lwrist', 'rhand', 'lhand']
 
-def heatmap2d(arr: np.ndarray):
-    plt.imshow(arr, cmap='viridis')
-#    plt.xticks(list_of_names)
-#    plt.yticks(list_of_names)
-    plt.colorbar()
-    plt.show()
+df = pd.DataFrame(df)
+df.columns = list_of_names
+df.index = list_of_names
 
-for k in range(24):
-    for j in range(24):
-        if k != j:
-            if np.abs(df[k, j]) < 0.2:
-                print(f"{list_of_names[k]}, {list_of_names[j]}")
+# Compute the linkage and optimal leaf order
+linkage_matrix = linkage(df, method="average")
+leaf_order = leaves_list(linkage_matrix)
 
-heatmap2d(df)
+# Reorder the DataFrame
+ordered_matrix = df.iloc[leaf_order, leaf_order]
 
-##All dimensions
-#AMASS
-##lwrist, rhand
-##rhand, lhand
+# Plot the heatmap
+plt.figure(figsize=(10, 8))
+sns.heatmap(ordered_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
+plt.title("Similarity Matrix Heatmap with Clustered Correlations")
+plt.show()
 
-#AIST
-##lelbow, rwrist
-##lelbow, rhand
-
-##Dimension 0          Dimension 1            Dimension 2 (up-down)
-#AMASS
-##lwrist, rhand        lwrist, rhand          belly, rtoe
-##rhand, lhand         rhand, lhand           rtoe, lelbow 
+#AMASS (Dance)
+#Left toe - right hand 0.27
+#Left hand - Right hand 0.12
 
 #AIST
-##Dimension 0          Dimension 1            Dimension 2
-##lwrist, rhand        lwrist, rhand,         belly, rtoe
-##rhand,  lhand        rhand, lhand,          rtoe, lelbow 
-
+#left toe - right hand 0.28
+#Left hand - right hand 0.25

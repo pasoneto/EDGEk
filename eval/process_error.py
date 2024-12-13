@@ -11,7 +11,7 @@ sys.path.insert(1, '/Users/pdealcan/Documents/github/edge_redo/EDGEk/')
 from data.accel_extraction_funcs import remove_foot_contact_and_fk
 
 # Set paths
-exp_number = 3
+exp_number = 5
 folders = os.listdir(f'../generated_dances/experiment{exp_number}/')
 
 # List of marker names
@@ -32,15 +32,15 @@ for l in folders:
             if control:
                 index = randint(0, len(predicted_files) - 1)
                 randomFile = predicted_files[index]
-#                randomFile = "_".join(randomFile.split("_")[2:])
+                randomFile = "_".join(randomFile.split("_")[2:])
                 True_path = os.path.join(f'../data/test_exp{exp_number}/motions_sliced', randomFile)
             else:
-#                realName = "_".join(pred_file.split("_")[2:])
                 realName = pred_file
+                realName = "_".join(pred_file.split("_")[2:])
                 True_path = os.path.join(f'../data/test_exp{exp_number}/motions_sliced', realName)
-                assert pred_file == realName
+#                assert pred_file == realName
 
-            True_data = np.load(True_path, allow_pickle=True).numpy()
+            True_data = np.load(True_path, allow_pickle=True)#.numpy()
             pred_data = np.load(pred_path, allow_pickle=True)['full_pose']
             
             if True_data.shape[1] == 151:

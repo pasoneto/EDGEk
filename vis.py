@@ -423,11 +423,10 @@ def visu_single(positions, sr):
 
     plt.show()
 
-
-def visu_double(position1, position2, sr):
+def visu_double(position1, position2, sr, fname):
     import matplotlib.pyplot as plt
     from mpl_toolkits.mplot3d import Axes3D
-    from matplotlib.animation import FuncAnimation
+    from matplotlib.animation import FuncAnimation, FFMpegWriter
     import numpy as np
 
     # Define some shared variables
@@ -435,69 +434,136 @@ def visu_double(position1, position2, sr):
     M = int(position1.shape[1])  # number of markers
 
     # Create a figure with two subplots
-    fig = plt.figure(figsize=(12, 6))
-    ax1 = fig.add_subplot(121, projection='3d')
-    ax2 = fig.add_subplot(122, projection='3d')
+    fig = plt.figure(figsize=(12, 6), facecolor='black')
+    ax1 = fig.add_subplot(121, projection='3d', facecolor='black')
+    ax2 = fig.add_subplot(122, projection='3d', facecolor='black')
 
-    # Initialize lines and markers for each plot
-    lines1 = [ax1.plot([], [], [])[0] for _ in range(M)]
-    markers1 = [ax1.plot([], [], [], marker='o', color='blue')[0] for _ in range(M)]
-    lines2 = [ax2.plot([], [], [])[0] for _ in range(M)]
-    markers2 = [ax2.plot([], [], [], marker='o', color='green')[0] for _ in range(M)]
-    
+    # Initialize markers and bones for each plot
+    markers1 = [ax1.plot([], [], [], marker='o', color='blue', markersize = 2)[0] for _ in range(M)]
+    markers2 = [ax2.plot([], [], [], marker='o', color='red', markersize = 2)[0] for _ in range(M)]
+    bones1 = [ax1.plot([], [], [], color='blue', linewidth=1.5)[0] for _ in range(M) if smpl_parents[_] != -1]
+    bones2 = [ax2.plot([], [], [], color='red', linewidth=1.5)[0] for _ in range(M) if smpl_parents[_] != -1]
+
     # Highlight specific markers
-    for i in [7, 8, 10, 11, M - 2, M - 1, 16, 17]:
-        markers1[i].set_markerfacecolor('red')
-        markers2[i].set_markerfacecolor('red')
+#    for i in [7, 8, 10, 11, M - 2, M - 1, 16, 17]:
+#        markers1[i].set_markerfacecolor('red')
+#        markers2[i].set_markerfacecolor('red')
 
-    # Initialize bones for each plot (connections between parent-child joints)
-    bones1 = [ax1.plot([], [], [], color='blue')[0] for _ in range(M) if smpl_parents[_] != -1]
-    bones2 = [ax2.plot([], [], [], color='green')[0] for _ in range(M) if smpl_parents[_] != -1]
-
-    # Set axis limits for both plots
+    # Set axis limits and a frontal view for both plots
     for ax in [ax1, ax2]:
         ax.set_xlim(-1, 1)
         ax.set_ylim(-1, 1)
         ax.set_zlim(-1, 1)
+        ax.view_init(elev=0, azim=-90)  # Frontal view
+        ax.grid(False)  # Remove grid
+        ax.axis('off')  # Turn off axis for a cleaner look
 
     # Animation function to update the plot
     def update(frame):
         for i in range(M):
-            # Update marker positions for position1
             x1, y1, z1 = position1[frame, i]
-            lines1[i].set_data([x1], [y1])
-            lines1[i].set_3d_properties([z1])
+            x2, y2, z2 = position2[frame, i]
+
+            # Update markers
             markers1[i].set_data([x1], [y1])
             markers1[i].set_3d_properties([z1])
-            
-            # Update marker positions for position2
-            x2, y2, z2 = position2[frame, i]
-            lines2[i].set_data([x2], [y2])
-            lines2[i].set_3d_properties([z2])
             markers2[i].set_data([x2], [y2])
             markers2[i].set_3d_properties([z2])
-            
-            # Draw bones for position1
+
+            # Update bones
             if smpl_parents[i] != -1:
                 parent_idx = smpl_parents[i]
-                px1, py1, pz1 = position1[frame, parent_idx]
-                bones1[i-1].set_data([x1, px1], [y1, py1])
-                bones1[i-1].set_3d_properties([z1, pz1])
 
-            # Draw bones for position2
-            if smpl_parents[i] != -1:
+                # Position1 bones
+                px1, py1, pz1 = position1[frame, parent_idx]
+                bones1[i - 1].set_data([x1, px1], [y1, py1])
+                bones1[i - 1].set_3d_properties([z1, pz1])
+
+                # Position2 bones
                 px2, py2, pz2 = position2[frame, parent_idx]
-                bones2[i-1].set_data([x2, px2], [y2, py2])
-                bones2[i-1].set_3d_properties([z2, pz2])
-        
-        return lines1 + markers1 + bones1 + lines2 + markers2 + bones2
+                bones2[i - 1].set_data([x2, px2], [y2, py2])
+                bones2[i - 1].set_3d_properties([z2, pz2])
+
+        return markers1 + bones1 + markers2 + bones2
 
     # Create animation
     fr = sr
     interval = 1000 / fr
     ani = FuncAnimation(fig, update, frames=N, blit=True, interval=interval)
 
-    plt.show()
+    # Save animation as an MP4 file
+    writer = FFMpegWriter(fps=sr, metadata={"dance": f"{fname}"})
+    ani.save(f"{fname}.mp4", writer=writer)
+
+#    plt.show()
+
+
+def visu_single(position1, sr, fname):
+    import matplotlib.pyplot as plt
+    from mpl_toolkits.mplot3d import Axes3D
+    from matplotlib.animation import FuncAnimation, FFMpegWriter
+    import numpy as np
+
+    # Define some shared variables
+    N = position1.shape[0]  # number of timesteps
+    M = int(position1.shape[1])  # number of markers
+
+    # Create a figure with two subplots
+    fig = plt.figure(facecolor='black')
+    ax1 = fig.add_subplot(111, projection='3d', facecolor='black')
+
+    # Initialize markers and bones for each plot
+    markers1 = [ax1.plot([], [], [], marker='o', color='blue', markersize = 2)[0] for _ in range(M)]
+    bones1 = [ax1.plot([], [], [], color='blue', linewidth=1.5)[0] for _ in range(M) if smpl_parents[_] != -1]
+
+    # Highlight specific markers
+#    for i in [7, 8, 10, 11, M - 2, M - 1, 16, 17]:
+#        markers1[i].set_markerfacecolor('red')
+#        markers2[i].set_markerfacecolor('red')
+
+    # Set axis limits and a frontal view for both plots
+    ax1.set_xlim(-1, 1)
+    ax1.set_ylim(-1, 1)
+    ax1.set_zlim(-1, 1)
+    ax1.view_init(elev=0, azim=-90)  # Frontal view
+    ax1.grid(False)  # Remove grid
+    ax1.axis('off')  # Turn off axis for a cleaner look
+
+    # Animation function to update the plot
+    def update(frame):
+        for i in range(M):
+            x1, y1, z1 = position1[frame, i]
+
+            # Update markers
+            markers1[i].set_data([x1], [y1])
+            markers1[i].set_3d_properties([z1])
+
+            # Update bones
+            if smpl_parents[i] != -1:
+                parent_idx = smpl_parents[i]
+
+                # Position1 bones
+                px1, py1, pz1 = position1[frame, parent_idx]
+                bones1[i - 1].set_data([x1, px1], [y1, py1])
+                bones1[i - 1].set_3d_properties([z1, pz1])
+
+        return markers1 + bones1
+
+    # Create animation
+    fr = sr
+    interval = 1000 / fr
+    ani = FuncAnimation(fig, update, frames=N, blit=True, interval=interval)
+
+    # Save animation as an MP4 file
+    writer = FFMpegWriter(fps=sr, metadata={"dance": f"{fname}"})
+    ani.save(f"{fname}.mp4", writer=writer)
+
+#    plt.show()
+
+
+
+
+
 
 def visu_2d(position1, position2, sr):
     import matplotlib.pyplot as plt
@@ -625,7 +691,7 @@ if False:
 
     # Convert the list to a DataFrame
     video_list = pd.read_csv("./eval/rendered_videos.csv")
-    
+    control = True 
     all_og = []
     all_pred = []
     for k in range(len(video_list)):
@@ -635,6 +701,11 @@ if False:
 
         real = f"{test_path}{name}.pkl"
         pred = f"{pred_path}{name}.pkl"
+
+        if control:
+            real = base_files[np.random.randint(0, len(base_files))]
+            print(real)
+            print(pred)
 
         og = np.load(real, allow_pickle=True)
         pred = np.load(pred, allow_pickle=True)['full_pose']
@@ -653,22 +724,74 @@ if False:
     #    pred = toFront(pred, 16, 17)
     #    print(name)
 
-#        og = og.reshape(-1, 24, 3)
-#        pred = pred.reshape(-1, 24, 3)
-        all_og.append(og)
-        all_pred.append(pred)
+        og = og.reshape(-1, 24, 3)
+        pred = pred.reshape(-1, 24, 3)
+#        all_og.append(og)
+#        all_pred.append(pred)
+        original_right = np.random.randint(0, 2) == 1
+        print(original_right)
+        if original_right:
+            if control:
+                visu_double(og, pred, 30, f"./generated_dances/online_experiment/control/true_predicted_control_{name}")
+            else:
+                visu_double(og, pred, 30, f"./generated_dances/online_experiment/experiment/true_predicted{name}")
+        else:
+            if control:
+                visu_double(pred, og, 30, f"./generated_dances/online_experiment/control/predicted_true_control_{name}")
+            else:
+                visu_double(pred, og, 30, f"./generated_dances/online_experiment/experiment/predicted_true{name}")
 
-    all_og = np.concatenate(all_og)
-    all_pred = np.concatenate(all_pred)
 
-    all_og = all_og.reshape(-1, 24, 3)
-    all_pred = all_pred.reshape(-1, 24, 3)
+#        visu_double(og, pred, 30)
+
+#    all_og = np.concatenate(all_og)
+#    all_pred = np.concatenate(all_pred)
+
+#    all_og = all_og.reshape(-1, 24, 3)
+#    all_pred = all_pred.reshape(-1, 24, 3)
     
-    all_og[:, :, 2] = np.zeros([1, all_og.shape[0], 24])
+#    all_og[:, :, 2] = np.zeros([1, all_og.shape[0], 24])
 
-    visu_double(all_og, all_pred, 30)
+#    visu_double(all_og, all_pred, 30)
         #visu_single(og, 30)
 
+if True:
+    pred_path = "./generated_dances/experiment3/exp3_epoch_7600/"
+    test_path = "./data/test_exp3/motions_sliced/"
+
+    # Convert the list to a DataFrame
+    video_list = pd.read_csv("./eval/rendered_videos.csv")
+    for k in range(len(video_list)):
+        name = video_list['videos'][k]
+
+        real = f"{test_path}{name}.pkl"
+        pred = f"{pred_path}{name}.pkl"
+
+        og = np.load(real, allow_pickle=True)
+        pred = np.load(pred, allow_pickle=True)['full_pose']
+        og = og.reshape(-1, 24*3)
+
+        og = upsample_matrix(og, 15, 30)
+        pred = upsample_matrix(pred, 15, 30)
+
+        if angle_out:
+            og = remove_foot_contact_and_fk(og)
+        else:
+            pass
+
+    #    og = toFront(og, 16, 17)
+    #    pred = toFront(pred, 16, 17)
+    #    print(name)
+
+        og = og.reshape(-1, 24, 3)
+        pred = pred.reshape(-1, 24, 3)
+#        all_og.append(og)
+#        all_pred.append(pred)
+        original_right = np.random.randint(0, 2) == 1
+        print(original_right)
+        visu_single(og, 30, f"./generated_dances/online_experiment/singles/control/true_{name}")
+        visu_single(pred, 30, f"./generated_dances/online_experiment/singles/experiment/pred_{name}")
+        print("name")
 
 if False:
     name = "Clio_Maleviziotikos_poses_slice3"
